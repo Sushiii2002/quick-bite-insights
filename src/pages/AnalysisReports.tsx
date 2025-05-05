@@ -1,19 +1,38 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, Line, BarChart, Bar, PieChart, Pie, 
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
+  ResponsiveContainer, Cell 
+} from 'recharts';
 import { useAuth } from '@/context/AuthContext';
-import { fetchNutritionSummary, fetchFoodLogs } from '@/services/supabaseService';
+import { fetchNutritionSummary, fetchFoodLogs, fetchUserProfile } from '@/services/supabaseService';
 import { ChartContainer } from '@/components/ui/chart';
 
 type TimeFrame = 'day' | 'week' | 'month';
 
+interface NutrientData {
+  name: string;
+  value: number;
+  goal: number;
+  unit: string;
+  color: string;
+  percentage: number;
+}
+
 const AnalysisReports = () => {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('day');
   const [nutritionData, setNutritionData] = useState<any[]>([]);
+  const [macroData, setMacroData] = useState<any[]>([]);
+  const [progressData, setProgressData] = useState<any[]>([]);
+  const [nutrientData, setNutrientData] = useState<NutrientData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  
+  const MACRO_COLORS = ['#3b82f6', '#10b981', '#f59e0b'];
 
   const loadData = async () => {
     if (!user) return;
@@ -35,6 +54,17 @@ const AnalysisReports = () => {
       // Start date should be at beginning of day
       startDate.setHours(0, 0, 0, 0);
       
+      // Get user profile for nutrient goals
+      const profile = await fetchUserProfile(user.id);
+      let nutrientGoals = {
+        fiber: 25,
+        vitaminC: 90,
+        calcium: 1000,
+        iron: 18,
+        sodium: 2300
+      };
+      
+      // Load nutrition data
       const summaryData = await fetchNutritionSummary(
         user.id,
         timeFrame,
@@ -42,11 +72,129 @@ const AnalysisReports = () => {
         endDate
       );
       
+      const logs = await fetchFoodLogs(user.id, undefined, startDate, endDate);
+      
+      // Calculate macro distribution
+      const totalMacros = {
+        protein: 0,
+        carbs: 0,
+        fat: 0
+      };
+      
+      // Progress data for weight and calories
+      const weightProgressMap = new Map();
+      
+      logs.forEach(log => {
+        totalMacros.protein += log.protein;
+        totalMacros.carbs += log.carbs;
+        totalMacros.fat += log.fat;
+        
+        const dateKey = log.loggedAt.toISOString().split('T')[0];
+        if (!weightProgressMap.has(dateKey)) {
+          weightProgressMap.set(dateKey, {
+            date: dateKey,
+            calories: 0,
+            weight: profile?.weight || 70 // Default weight if not available
+          });
+        }
+        
+        const entry = weightProgressMap.get(dateKey);
+        entry.calories += log.calories;
+      });
+      
+      // Generate progress data sorted by date
+      const progressArray = Array.from(weightProgressMap.values())
+        .sort((a, b) => a.date.localeCompare(b.date));
+      
+      // Add small random variations to weight to simulate weight tracking
+      let currentWeight = profile?.weight || 70;
+      progressArray.forEach((day, index) => {
+        // Apply small random fluctuation
+        if (index > 0) {
+          const calorieDeficit = day.calories - 2000; // Assuming 2000 is maintenance
+          const weightChange = calorieDeficit / 7700 * 0.5; // Very approximate weight change + random factor
+          currentWeight = Math.round((currentWeight + weightChange + (Math.random() * 0.4 - 0.2)) * 10) / 10;
+        }
+        day.weight = currentWeight;
+      });
+      
+      // Create macro distribution data for pie chart
+      const macroTotal = totalMacros.protein + totalMacros.carbs + totalMacros.fat;
+      const macroDistribution = [
+        { 
+          name: 'Protein', 
+          value: totalMacros.protein,
+          percentage: Math.round((totalMacros.protein / macroTotal) * 100) || 0,
+        },
+        { 
+          name: 'Carbs', 
+          value: totalMacros.carbs,
+          percentage: Math.round((totalMacros.carbs / macroTotal) * 100) || 0,
+        },
+        { 
+          name: 'Fat', 
+          value: totalMacros.fat,
+          percentage: Math.round((totalMacros.fat / macroTotal) * 100) || 0,
+        }
+      ];
+      
+      // Create nutrient breakdown data
+      // In a real app, this would come from API data about micronutrients
+      const nutrients: NutrientData[] = [
+        {
+          name: 'Fiber',
+          value: Math.round(logs.reduce((sum, log) => sum + (log.fiber || 0), 0)),
+          goal: nutrientGoals.fiber,
+          unit: 'g',
+          color: '#10b981',
+          percentage: 0
+        },
+        {
+          name: 'Vitamin C',
+          value: 75,
+          goal: nutrientGoals.vitaminC,
+          unit: 'mg',
+          color: '#f59e0b',
+          percentage: 0
+        },
+        {
+          name: 'Calcium',
+          value: 850,
+          goal: nutrientGoals.calcium,
+          unit: 'mg',
+          color: '#3b82f6',
+          percentage: 0
+        },
+        {
+          name: 'Iron',
+          value: 12,
+          goal: nutrientGoals.iron,
+          unit: 'mg',
+          color: '#ef4444',
+          percentage: 0
+        },
+        {
+          name: 'Sodium',
+          value: 1500,
+          goal: nutrientGoals.sodium,
+          unit: 'mg',
+          color: '#8b5cf6',
+          percentage: 0
+        },
+      ];
+      
+      // Calculate percentages for nutrient data
+      nutrients.forEach(nutrient => {
+        nutrient.percentage = Math.round((nutrient.value / nutrient.goal) * 100);
+      });
+      
+      // Update state with all our calculated data
+      setMacroData(macroDistribution);
+      setProgressData(progressArray);
+      setNutrientData(nutrients);
+      
       // Fallback to manual data processing if RPC fails
       if (!summaryData || summaryData.length === 0) {
-        const logs = await fetchFoodLogs(user.id, undefined, startDate, endDate);
-        
-        // Group by day
         const groupedData = new Map();
         
         logs.forEach(log => {
@@ -133,29 +281,32 @@ const AnalysisReports = () => {
     { name: 'Beverages', calories: 120 },
   ], [timeFrame]);
 
-  // Generate mock progress over time data
-  const progressData = useMemo(() => {
-    const data = [];
-    let currentDate = new Date();
-    currentDate.setDate(currentDate.getDate() - 30);
+  const renderNutrientProgress = (nutrient: NutrientData) => {
+    const percentage = Math.min(nutrient.percentage, 100);
+    let barColor;
     
-    let weight = 75; // Starting weight in kg
-    
-    for (let i = 0; i < 30; i++) {
-      currentDate.setDate(currentDate.getDate() + 1);
-      
-      // Small random weight fluctuation
-      weight = weight + (Math.random() * 0.4 - 0.2);
-      
-      data.push({
-        date: currentDate.toISOString().split('T')[0],
-        calories: Math.floor(Math.random() * 500) + 1500,
-        weight: weight.toFixed(1)
-      });
-    }
-    
-    return data;
-  }, [timeFrame]);
+    // Color based on how close to goal
+    if (percentage < 50) barColor = 'bg-red-400';
+    else if (percentage < 80) barColor = 'bg-yellow-400';
+    else barColor = 'bg-green-400';
+
+    return (
+      <div key={nutrient.name} className="mb-3">
+        <div className="flex justify-between mb-1">
+          <span className="text-sm">{nutrient.name}</span>
+          <span className="text-sm">
+            {nutrient.value}{nutrient.unit} / {nutrient.goal}{nutrient.unit}
+          </span>
+        </div>
+        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className={`${barColor} h-full transition-all duration-500`}
+            style={{ width: `${percentage}%` }}
+          ></div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Layout>
@@ -180,59 +331,6 @@ const AnalysisReports = () => {
       </div>
 
       <div className="space-y-8">
-        {/* Weekly Trend Line Graph */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Nutrition Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="h-64 w-full bg-gray-100 animate-pulse rounded-md flex items-center justify-center">
-                Loading chart data...
-              </div>
-            ) : (
-              <ChartContainer
-                config={{
-                  calories: { label: 'Calories', theme: { light: '#4ECDC4', dark: '#4ECDC4' } },
-                  protein: { label: 'Protein', theme: { light: '#3b82f6', dark: '#3b82f6' } },
-                  carbs: { label: 'Carbs', theme: { light: '#10b981', dark: '#10b981' } },
-                  fat: { label: 'Fat', theme: { light: '#ef4444', dark: '#ef4444' } },
-                }}
-                className="aspect-[2/1]"
-              >
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={nutritionData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="date" 
-                      tickFormatter={(value) => {
-                        if (timeFrame === 'day') {
-                          return value.substring(5); // Just show MM-DD
-                        }
-                        return value;
-                      }}
-                    />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="calories" 
-                      stroke="var(--color-calories)" 
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                      activeDot={{ r: 5 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            )}
-            <p className="mt-2 text-xs text-muted-foreground">
-              Nutrition experts recommend tracking weekly averages rather than focusing exclusively on daily fluctuations.
-            </p>
-          </CardContent>
-        </Card>
-
         {/* Daily Calorie Bar Chart */}
         <Card>
           <CardHeader className="pb-2">
@@ -265,6 +363,95 @@ const AnalysisReports = () => {
             )}
             <p className="mt-2 text-xs text-muted-foreground">
               This chart provides an immediate visual indication of whether you're meeting your calorie goals.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Macro Distribution Pie Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Macro Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="h-64 w-full bg-gray-100 animate-pulse rounded-md flex items-center justify-center">
+                Loading chart data...
+              </div>
+            ) : (
+              <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+                <div className="w-full md:w-1/2">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={macroData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label={({ name, percentage }) => `${name}: ${percentage}%`}
+                      >
+                        {macroData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={MACRO_COLORS[index % MACRO_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => `${value}g`} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="w-full md:w-1/2">
+                  <div className="space-y-4">
+                    {macroData.map((macro, index) => (
+                      <div key={macro.name} className="flex items-center">
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2"
+                          style={{ backgroundColor: MACRO_COLORS[index % MACRO_COLORS.length] }}
+                        ></div>
+                        <div className="flex-1">
+                          <div className="flex justify-between">
+                            <span>{macro.name}</span>
+                            <span className="font-semibold">{macro.percentage}%</span>
+                          </div>
+                          <div className="text-sm text-muted-foreground">{Math.round(macro.value)}g</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              A healthy diet typically consists of 10-35% protein, 45-65% carbs, and 20-35% fat of total daily calories.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Nutrient Breakdown */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Nutrient Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4 animate-pulse">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="space-y-2">
+                    <div className="flex justify-between">
+                      <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                      <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                    </div>
+                    <div className="h-2 w-full bg-gray-200 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div>
+                {nutrientData.map(renderNutrientProgress)}
+              </div>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              Monitoring your micronutrient intake is crucial for overall health and preventing nutritional deficiencies.
             </p>
           </CardContent>
         </Card>
@@ -319,31 +506,37 @@ const AnalysisReports = () => {
             <CardTitle className="text-lg">Progress Over Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={progressData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tickFormatter={(value) => value.substring(5)} />
-                <YAxis yAxisId="left" orientation="left" stroke="#4ECDC4" />
-                <YAxis yAxisId="right" orientation="right" stroke="#8884d8" />
-                <Tooltip />
-                <Legend />
-                <Line 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="calories" 
-                  name="Calories" 
-                  stroke="#4ECDC4" 
-                  activeDot={{ r: 8 }} 
-                />
-                <Line 
-                  yAxisId="right"
-                  type="monotone" 
-                  dataKey="weight" 
-                  name="Weight (kg)" 
-                  stroke="#8884d8" 
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {isLoading ? (
+              <div className="h-64 w-full bg-gray-100 animate-pulse rounded-md flex items-center justify-center">
+                Loading chart data...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={progressData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tickFormatter={(value) => value.substring(5)} />
+                  <YAxis yAxisId="left" orientation="left" stroke="#4ECDC4" />
+                  <YAxis yAxisId="right" orientation="right" stroke="#8884d8" />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="calories" 
+                    name="Calories" 
+                    stroke="#4ECDC4" 
+                    activeDot={{ r: 8 }} 
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="weight" 
+                    name="Weight (kg)" 
+                    stroke="#8884d8" 
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
             <p className="mt-2 text-xs text-muted-foreground">
               A dual-axis chart showing calorie intake alongside weight changes helps understand the relationship between consumption and results.
             </p>

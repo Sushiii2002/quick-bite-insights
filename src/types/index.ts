@@ -38,3 +38,10 @@ export interface DailyNutrition {
   fat: number;
   fiber: number;
 }
+
+export interface WaterIntake {
+  id?: string;
+  userId: string;
+  date: string;
+  glasses: number;
+}

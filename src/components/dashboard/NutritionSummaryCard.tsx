@@ -67,35 +67,66 @@ const NutritionSummaryCard = ({
   }
 
   return (
-    <Card className="w-full">
+    <Card className="w-full shadow-md">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Today's Nutrition</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium">{calories} / {goal} kcal</span>
-              <span className="text-sm font-medium">{percentage}%</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Calories</span>
+              <span className="text-sm font-medium">{calories} / {goal} kcal ({percentage}%)</span>
             </div>
-            <Progress value={percentage} className="h-2" />
+            <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-500 ease-in-out"
+                style={{ width: `${percentage}%` }}
+              ></div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-blue-100 p-2 rounded-md text-center">
-              <p className="text-xs text-blue-800">Protein</p>
-              <p className="font-semibold">{Math.round(protein)}g</p>
-              <p className="text-xs">{proteinPercentage}%</p>
+          <div className="space-y-4">
+            {/* Protein Progress */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-blue-700">Protein</span>
+                <span className="text-xs font-medium">{Math.round(protein)}g ({proteinPercentage}%)</span>
+              </div>
+              <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 transition-all duration-500"
+                  style={{ width: `${proteinPercentage}%` }}
+                ></div>
+              </div>
             </div>
-            <div className="bg-green-100 p-2 rounded-md text-center">
-              <p className="text-xs text-green-800">Carbs</p>
-              <p className="font-semibold">{Math.round(carbs)}g</p>
-              <p className="text-xs">{carbsPercentage}%</p>
+            
+            {/* Carbs Progress */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-green-700">Carbs</span>
+                <span className="text-xs font-medium">{Math.round(carbs)}g ({carbsPercentage}%)</span>
+              </div>
+              <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-green-500 transition-all duration-500"
+                  style={{ width: `${carbsPercentage}%` }}
+                ></div>
+              </div>
             </div>
-            <div className="bg-red-100 p-2 rounded-md text-center">
-              <p className="text-xs text-red-800">Fat</p>
-              <p className="font-semibold">{Math.round(fat)}g</p>
-              <p className="text-xs">{fatPercentage}%</p>
+            
+            {/* Fat Progress */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-orange-700">Fat</span>
+                <span className="text-xs font-medium">{Math.round(fat)}g ({fatPercentage}%)</span>
+              </div>
+              <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-orange-500 transition-all duration-500"
+                  style={{ width: `${fatPercentage}%` }}
+                ></div>
+              </div>
             </div>
           </div>
         </div>

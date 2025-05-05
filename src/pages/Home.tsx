@@ -6,6 +6,7 @@ import NutritionSummaryCard from '@/components/dashboard/NutritionSummaryCard';
 import RecentMealsCard from '@/components/dashboard/RecentMealsCard';
 import FavoriteFoodsCard from '@/components/dashboard/FavoriteFoodsCard';
 import QuickAddCard from '@/components/dashboard/QuickAddCard';
+import WaterIntakeCard from '@/components/dashboard/WaterIntakeCard';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
@@ -175,7 +176,7 @@ const Home = () => {
         <Button
           size="sm"
           onClick={() => navigate('/search')}
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 bg-teal-500 hover:bg-teal-600"
         >
           <Plus className="h-4 w-4" /> Log Food
         </Button>
@@ -190,6 +191,8 @@ const Home = () => {
           fat={todayStats.fat}
           isLoading={isLoading}
         />
+
+        <WaterIntakeCard />
 
         <FavoriteFoodsCard onLogFood={handleLogAgain} />
         

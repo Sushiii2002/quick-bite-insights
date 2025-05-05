@@ -202,6 +202,10 @@ export const fetchFoodLogs = async (
       return [];
     }
 
+    if (!data) {
+      return [];
+    }
+
     return data.map(log => ({
       id: log.id,
       userId: log.user_id,
@@ -226,50 +230,53 @@ export const fetchFoodLogs = async (
 // Get favorite/frequently logged foods
 export const fetchFavoriteFoods = async (userId: string, limit: number = 6): Promise<FoodLog[]> => {
   try {
-    const { data, error } = await supabase.rpc('get_favorite_foods', { 
-      user_id_param: userId,
-      limit_param: limit
-    });
-
-    if (error) {
-      console.error('Error fetching favorite foods:', error);
-      
-      // Fallback to direct query if RPC isn't set up
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('food_logs')
-        .select('*')
-        .eq('user_id', userId)
-        .order('logged_at', { ascending: false })
-        .limit(limit);
-        
-      if (fallbackError) {
-        console.error('Fallback error fetching food logs:', fallbackError);
-        return [];
+    // First try using RPC function
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_favorite_foods', { 
+        user_id_param: userId,
+        limit_param: limit
+      });
+  
+      if (!rpcError && rpcData) {
+        return rpcData.map((log: any) => ({
+          id: log.id,
+          userId: log.user_id,
+          foodName: log.food_name,
+          foodId: log.food_id,
+          calories: log.calories,
+          protein: log.protein,
+          carbs: log.carbs,
+          fat: log.fat,
+          fiber: log.fiber || 0,
+          portionSize: log.portion_size,
+          portionUnit: log.portion_unit,
+          mealType: log.meal_type as MealType,
+          loggedAt: new Date(log.logged_at),
+        }));
       }
-      
-      return fallbackData.map(log => ({
-        id: log.id,
-        userId: log.user_id,
-        foodName: log.food_name,
-        foodId: log.food_id,
-        calories: log.calories,
-        protein: log.protein,
-        carbs: log.carbs,
-        fat: log.fat,
-        fiber: log.fiber || 0,
-        portionSize: log.portion_size,
-        portionUnit: log.portion_unit,
-        mealType: log.meal_type as MealType,
-        loggedAt: new Date(log.logged_at),
-      }));
+    } catch (rpcError) {
+      console.error('Error using RPC for favorite foods:', rpcError);
+      // Continue to fallback
     }
-
-    if (!data) {
-      console.error('No data returned from get_favorite_foods RPC');
+      
+    // Fallback to direct query if RPC isn't set up
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('food_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('logged_at', { ascending: false })
+      .limit(limit);
+      
+    if (fallbackError) {
+      console.error('Fallback error fetching food logs:', fallbackError);
       return [];
     }
-
-    return data.map((log: any) => ({
+    
+    if (!fallbackData) {
+      return [];
+    }
+    
+    return fallbackData.map(log => ({
       id: log.id,
       userId: log.user_id,
       foodName: log.food_name,
@@ -298,60 +305,66 @@ export const fetchNutritionSummary = async (
   endDate?: Date
 ) => {
   try {
-    let query = supabase.rpc('get_nutrition_summary', {
-      user_id_param: userId,
-      period_param: period,
-      start_date_param: startDate?.toISOString() || null,
-      end_date_param: endDate?.toISOString() || null
-    });
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching nutrition summary:', error);
+    // First try with RPC
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_nutrition_summary', {
+        user_id_param: userId,
+        period_param: period,
+        start_date_param: startDate?.toISOString() || null,
+        end_date_param: endDate?.toISOString() || null
+      });
+  
+      if (!rpcError && rpcData) {
+        return rpcData;
+      }
+    } catch (rpcError) {
+      console.error('Error using RPC for nutrition summary:', rpcError);
+      // Continue to fallback
+    }
       
-      // Fallback to direct query
-      const { data: foodLogs, error: logsError } = await supabase
-        .from('food_logs')
-        .select('*')
-        .eq('user_id', userId)
-        .order('logged_at', { ascending: false });
+    // Fallback to direct query
+    const { data: foodLogs, error: logsError } = await supabase
+      .from('food_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('logged_at', { ascending: false });
+    
+    if (logsError) {
+      console.error('Error fetching food logs for summary:', logsError);
+      return [];
+    }
+    
+    if (!foodLogs) {
+      return [];
+    }
+    
+    // Manually create daily summaries
+    const dailySummaries = new Map();
+    
+    foodLogs.forEach((log: any) => {
+      const date = new Date(log.logged_at);
+      const dateStr = date.toISOString().split('T')[0];
       
-      if (logsError) {
-        console.error('Error fetching food logs for summary:', logsError);
-        return [];
+      if (!dailySummaries.has(dateStr)) {
+        dailySummaries.set(dateStr, {
+          date: dateStr,
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          fiber: 0
+        });
       }
       
-      // Manually create daily summaries
-      const dailySummaries = new Map();
-      
-      foodLogs.forEach((log: any) => {
-        const date = new Date(log.logged_at);
-        const dateStr = date.toISOString().split('T')[0];
-        
-        if (!dailySummaries.has(dateStr)) {
-          dailySummaries.set(dateStr, {
-            date: dateStr,
-            calories: 0,
-            protein: 0,
-            carbs: 0,
-            fat: 0,
-            fiber: 0
-          });
-        }
-        
-        const summary = dailySummaries.get(dateStr);
-        summary.calories += log.calories;
-        summary.protein += log.protein;
-        summary.carbs += log.carbs;
-        summary.fat += log.fat;
-        summary.fiber += log.fiber || 0;
-      });
-      
-      return Array.from(dailySummaries.values());
-    }
-
-    return data;
+      const summary = dailySummaries.get(dateStr);
+      summary.calories += log.calories;
+      summary.protein += log.protein;
+      summary.carbs += log.carbs;
+      summary.fat += log.fat;
+      summary.fiber += log.fiber || 0;
+    });
+    
+    return Array.from(dailySummaries.values());
   } catch (error) {
     console.error('Error fetching nutrition summary:', error);
     return [];
@@ -408,5 +421,81 @@ export const updateUserProfile = async (userId: string, profile: any) => {
   } catch (error) {
     console.error('Error updating user profile:', error);
     return false;
+  }
+};
+
+// Track water intake
+export const updateWaterIntake = async (userId: string, glasses: number): Promise<boolean> => {
+  try {
+    const date = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+    
+    // First check if an entry for today exists
+    const { data, error: fetchError } = await supabase
+      .from('water_intake')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error('Error fetching water intake:', fetchError);
+      return false;
+    }
+    
+    if (data) {
+      // Update existing entry
+      const { error } = await supabase
+        .from('water_intake')
+        .update({ glasses })
+        .eq('id', data.id);
+      
+      if (error) {
+        console.error('Error updating water intake:', error);
+        return false;
+      }
+    } else {
+      // Create new entry
+      const { error } = await supabase
+        .from('water_intake')
+        .insert({
+          user_id: userId,
+          date,
+          glasses
+        });
+      
+      if (error) {
+        console.error('Error inserting water intake:', error);
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error tracking water intake:', error);
+    return false;
+  }
+};
+
+// Get water intake for today
+export const getTodayWaterIntake = async (userId: string): Promise<number> => {
+  try {
+    const date = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+    
+    const { data, error } = await supabase
+      .from('water_intake')
+      .select('glasses')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching water intake:', error);
+      return 0;
+    }
+    
+    return data?.glasses || 0;
+  } catch (error) {
+    console.error('Error fetching water intake:', error);
+    return 0;
   }
 };
