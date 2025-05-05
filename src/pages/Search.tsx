@@ -7,11 +7,14 @@ import { getNutrients, FoodItem, SearchResult } from '@/services/nutritionixAPI'
 import { useToast } from '@/components/ui/use-toast';
 import { FoodLog } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from '@/context/AuthContext';
+import { logFoodEntry } from '@/services/supabaseService';
 
 const Search = () => {
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleFoodSelect = async (food: SearchResult) => {
     try {
@@ -32,16 +35,39 @@ const Search = () => {
     }
   };
 
-  const handleLogFood = (logData: Omit<FoodLog, 'id' | 'userId' | 'loggedAt'>) => {
-    // TODO: Save to Supabase
-    console.log('Logging food:', logData);
+  const handleLogFood = async (logData: Omit<FoodLog, 'id' | 'userId' | 'loggedAt'>) => {
+    if (!user || !selectedFood) return;
     
-    toast({
-      title: 'Food Logged',
-      description: `${logData.foodName} added to your diary.`,
-    });
-    
-    setSelectedFood(null);
+    try {
+      const logId = await logFoodEntry(
+        user.id,
+        selectedFood,
+        logData.mealType,
+        logData.portionSize / selectedFood.serving_qty
+      );
+      
+      if (logId) {
+        toast({
+          title: 'Food Logged',
+          description: `${logData.foodName} added to your diary.`,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to log food. Please try again.',
+          variant: 'destructive',
+        });
+      }
+      
+      setSelectedFood(null);
+    } catch (error) {
+      console.error('Error logging food:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to log food. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

@@ -9,7 +9,159 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      food_logs: {
+        Row: {
+          calories: number
+          carbs: number
+          fat: number
+          fiber: number | null
+          food_id: string | null
+          food_name: string
+          id: string
+          logged_at: string
+          meal_type: string
+          portion_size: number
+          portion_unit: string
+          protein: number
+          user_id: string
+        }
+        Insert: {
+          calories: number
+          carbs: number
+          fat: number
+          fiber?: number | null
+          food_id?: string | null
+          food_name: string
+          id?: string
+          logged_at?: string
+          meal_type: string
+          portion_size: number
+          portion_unit: string
+          protein: number
+          user_id: string
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          fat?: number
+          fiber?: number | null
+          food_id?: string | null
+          food_name?: string
+          id?: string
+          logged_at?: string
+          meal_type?: string
+          portion_size?: number
+          portion_unit?: string
+          protein?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_favorites: {
+        Row: {
+          created_at: string
+          food_id: string
+          food_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          food_id: string
+          food_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          food_id?: string
+          food_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_quick_adds: {
+        Row: {
+          calories: number
+          created_at: string
+          display_order: number
+          food_id: string
+          food_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          calories: number
+          created_at?: string
+          display_order: number
+          food_id: string
+          food_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          calories?: number
+          created_at?: string
+          display_order?: number
+          food_id?: string
+          food_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_quick_adds_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          daily_goal: Json | null
+          email: string
+          height: number | null
+          id: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          daily_goal?: Json | null
+          email: string
+          height?: number | null
+          id: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          daily_goal?: Json | null
+          email?: string
+          height?: number | null
+          id?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

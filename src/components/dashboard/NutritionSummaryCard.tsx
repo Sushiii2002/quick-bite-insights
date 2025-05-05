@@ -9,15 +9,62 @@ interface NutritionSummaryCardProps {
   protein: number;
   carbs: number;
   fat: number;
+  isLoading?: boolean;
 }
 
-const NutritionSummaryCard = ({ calories, goal, protein, carbs, fat }: NutritionSummaryCardProps) => {
+const NutritionSummaryCard = ({ 
+  calories, 
+  goal, 
+  protein, 
+  carbs, 
+  fat, 
+  isLoading = false 
+}: NutritionSummaryCardProps) => {
   const percentage = Math.min(Math.round((calories / goal) * 100), 100);
   
   const macroTotal = protein + carbs + fat;
   const proteinPercentage = macroTotal > 0 ? Math.round((protein / macroTotal) * 100) : 0;
   const carbsPercentage = macroTotal > 0 ? Math.round((carbs / macroTotal) * 100) : 0;
   const fatPercentage = macroTotal > 0 ? Math.round((fat / macroTotal) * 100) : 0;
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-medium">Today's Nutrition</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4 animate-pulse">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                <div className="h-4 w-12 bg-gray-200 rounded"></div>
+              </div>
+              <div className="h-2 w-full bg-gray-200 rounded"></div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-blue-50 p-2 rounded-md text-center">
+                <p className="text-xs text-blue-800">Protein</p>
+                <div className="h-5 w-12 mx-auto bg-blue-100 rounded my-1"></div>
+                <div className="h-3 w-8 mx-auto bg-blue-100 rounded"></div>
+              </div>
+              <div className="bg-green-50 p-2 rounded-md text-center">
+                <p className="text-xs text-green-800">Carbs</p>
+                <div className="h-5 w-12 mx-auto bg-green-100 rounded my-1"></div>
+                <div className="h-3 w-8 mx-auto bg-green-100 rounded"></div>
+              </div>
+              <div className="bg-red-50 p-2 rounded-md text-center">
+                <p className="text-xs text-red-800">Fat</p>
+                <div className="h-5 w-12 mx-auto bg-red-100 rounded my-1"></div>
+                <div className="h-3 w-8 mx-auto bg-red-100 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">
@@ -37,17 +84,17 @@ const NutritionSummaryCard = ({ calories, goal, protein, carbs, fat }: Nutrition
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-blue-100 p-2 rounded-md text-center">
               <p className="text-xs text-blue-800">Protein</p>
-              <p className="font-semibold">{protein}g</p>
+              <p className="font-semibold">{Math.round(protein)}g</p>
               <p className="text-xs">{proteinPercentage}%</p>
             </div>
             <div className="bg-green-100 p-2 rounded-md text-center">
               <p className="text-xs text-green-800">Carbs</p>
-              <p className="font-semibold">{carbs}g</p>
+              <p className="font-semibold">{Math.round(carbs)}g</p>
               <p className="text-xs">{carbsPercentage}%</p>
             </div>
             <div className="bg-red-100 p-2 rounded-md text-center">
               <p className="text-xs text-red-800">Fat</p>
-              <p className="font-semibold">{fat}g</p>
+              <p className="font-semibold">{Math.round(fat)}g</p>
               <p className="text-xs">{fatPercentage}%</p>
             </div>
           </div>

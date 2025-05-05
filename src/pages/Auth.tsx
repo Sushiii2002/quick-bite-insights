@@ -1,62 +1,132 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from "@/components/ui/use-toast";
-import LoginForm from '@/components/auth/LoginForm';
-import RegisterForm from '@/components/auth/RegisterForm';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/context/AuthContext";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const { toast } = useToast();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { user, signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (email: string, password: string) => {
-    // TODO: Implement Supabase authentication
-    console.log('Login with:', email, password);
-    
-    // For demo purposes, simulate successful login
-    toast({
-      title: 'Login Successful',
-      description: 'Welcome back to BeyondDiet!',
-    });
-    
-    // Redirect to the home page
-    navigate('/');
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await signIn(email, password);
+    setIsLoading(false);
   };
 
-  const handleRegister = async (email: string, password: string) => {
-    // TODO: Implement Supabase authentication
-    console.log('Register with:', email, password);
-    
-    // For demo purposes, simulate successful registration
-    toast({
-      title: 'Registration Successful',
-      description: 'Your account has been created. Welcome to BeyondDiet!',
-    });
-    
-    // Redirect to the home page
-    navigate('/');
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await signUp(email, password);
+    setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md mb-8">
-        <div className="text-center mb-6">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-md p-4">
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary">BeyondDiet</h1>
-          <p className="text-muted-foreground mt-1">Simple nutrition tracking</p>
+          <p className="text-muted-foreground">Your simple nutrition companion</p>
         </div>
         
-        {isLogin ? (
-          <LoginForm 
-            onLogin={handleLogin} 
-            onSwitchToRegister={() => setIsLogin(false)} 
-          />
-        ) : (
-          <RegisterForm 
-            onRegister={handleRegister} 
-            onSwitchToLogin={() => setIsLogin(true)} 
-          />
-        )}
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="register">Register</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="login">
+            <Card>
+              <CardHeader>
+                <CardTitle>Welcome Back</CardTitle>
+                <CardDescription>Enter your credentials to access your account</CardDescription>
+              </CardHeader>
+              <form onSubmit={handleSignIn}>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="text-sm font-medium">Email</label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="text-sm font-medium">Password</label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Signing in..." : "Sign In"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="register">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create an Account</CardTitle>
+                <CardDescription>Sign up to start tracking your nutrition</CardDescription>
+              </CardHeader>
+              <form onSubmit={handleSignUp}>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="register-email" className="text-sm font-medium">Email</label>
+                    <Input
+                      id="register-email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="register-password" className="text-sm font-medium">Password</label>
+                    <Input
+                      id="register-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Creating account..." : "Create Account"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

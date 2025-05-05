@@ -43,30 +43,31 @@ const FoodLogForm = ({ food, onSubmit, onCancel }: FoodLogFormProps) => {
   ];
 
   return (
-    <Card className="p-4 animate-fade-in">
+    <Card className="p-4 animate-fade-in rounded-lg border-2 border-primary/20 shadow-lg">
       <div className="mb-4 flex items-center">
         {food.photo?.thumb && (
           <img 
             src={food.photo.thumb} 
             alt={food.food_name} 
-            className="w-12 h-12 rounded-md mr-3 object-cover"
+            className="w-16 h-16 rounded-md mr-4 object-cover shadow-md"
           />
         )}
         <div>
-          <h3 className="font-medium">{food.food_name}</h3>
+          <h3 className="font-medium text-lg">{food.food_name}</h3>
           <p className="text-sm text-muted-foreground">
             {food.serving_qty * portionSize} {food.serving_unit}
           </p>
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-6">
         <label className="text-sm font-medium mb-2 block">Portion size</label>
         <div className="flex items-center space-x-4">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => setPortionSize(Math.max(0.5, portionSize - 0.5))}
+            className="h-9 w-9 rounded-full p-0 flex items-center justify-center"
           >
             -
           </Button>
@@ -82,10 +83,11 @@ const FoodLogForm = ({ food, onSubmit, onCancel }: FoodLogFormProps) => {
             variant="outline" 
             size="sm" 
             onClick={() => setPortionSize(Math.min(3, portionSize + 0.5))}
+            className="h-9 w-9 rounded-full p-0 flex items-center justify-center"
           >
             +
           </Button>
-          <span className="w-10 text-center">{portionSize}x</span>
+          <span className="w-12 text-center font-medium">{portionSize}x</span>
         </div>
       </div>
 
@@ -96,7 +98,7 @@ const FoodLogForm = ({ food, onSubmit, onCancel }: FoodLogFormProps) => {
             <Button
               key={type}
               variant={mealType === type ? "default" : "outline"}
-              className="w-full"
+              className={`w-full transition-all ${mealType === type ? 'bg-primary text-white scale-105' : ''}`}
               onClick={() => setMealType(type)}
             >
               {label}
@@ -106,29 +108,36 @@ const FoodLogForm = ({ food, onSubmit, onCancel }: FoodLogFormProps) => {
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-gray-100 p-2 rounded text-center">
-          <p className="text-xs">Calories</p>
-          <p className="font-medium">{calculateNutrients(food.nf_calories)} kcal</p>
+        <div className="bg-gray-100 p-3 rounded-lg text-center transform hover:scale-105 transition-transform">
+          <p className="text-xs font-medium">Calories</p>
+          <p className="font-bold text-lg">{calculateNutrients(food.nf_calories)} kcal</p>
         </div>
-        <div className="bg-blue-100 p-2 rounded text-center">
-          <p className="text-xs text-blue-800">Protein</p>
-          <p className="font-medium">{calculateNutrients(food.nf_protein)} g</p>
+        <div className="bg-blue-100 p-3 rounded-lg text-center transform hover:scale-105 transition-transform">
+          <p className="text-xs font-medium text-blue-800">Protein</p>
+          <p className="font-bold text-lg text-blue-600">{calculateNutrients(food.nf_protein)} g</p>
         </div>
-        <div className="bg-green-100 p-2 rounded text-center">
-          <p className="text-xs text-green-800">Carbs</p>
-          <p className="font-medium">{calculateNutrients(food.nf_total_carbohydrate)} g</p>
+        <div className="bg-green-100 p-3 rounded-lg text-center transform hover:scale-105 transition-transform">
+          <p className="text-xs font-medium text-green-800">Carbs</p>
+          <p className="font-bold text-lg text-green-600">{calculateNutrients(food.nf_total_carbohydrate)} g</p>
         </div>
-        <div className="bg-red-100 p-2 rounded text-center">
-          <p className="text-xs text-red-800">Fat</p>
-          <p className="font-medium">{calculateNutrients(food.nf_total_fat)} g</p>
+        <div className="bg-red-100 p-3 rounded-lg text-center transform hover:scale-105 transition-transform">
+          <p className="text-xs font-medium text-red-800">Fat</p>
+          <p className="font-bold text-lg text-red-600">{calculateNutrients(food.nf_total_fat)} g</p>
         </div>
       </div>
 
       <div className="flex space-x-3">
-        <Button variant="outline" className="flex-1" onClick={onCancel}>
+        <Button 
+          variant="outline" 
+          className="flex-1 hover:bg-gray-100"
+          onClick={onCancel}
+        >
           Cancel
         </Button>
-        <Button className="flex-1" onClick={handleSubmit}>
+        <Button 
+          className="flex-1 bg-primary hover:bg-primary/80 text-white"
+          onClick={handleSubmit}
+        >
           Log Food
         </Button>
       </div>

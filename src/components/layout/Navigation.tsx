@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Home,
   Search,
-  MessageCircle, 
+  BarChart, 
   User
 } from 'lucide-react';
 
@@ -23,9 +23,9 @@ const Navigation = () => {
       path: '/search',
     },
     {
-      icon: MessageCircle,
-      label: 'AI Chat',
-      path: '/ai-chat',
+      icon: BarChart,
+      label: 'Analysis',
+      path: '/analysis',
     },
     {
       icon: User,
