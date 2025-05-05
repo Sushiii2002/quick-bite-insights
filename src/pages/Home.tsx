@@ -37,9 +37,14 @@ const Home = () => {
         
         // Get user profile for daily goal
         const profile = await fetchUserProfile(user.id);
-        const dailyGoal = profile?.dailyGoal ? 
-          profile.dailyGoal.calories : 
-          2000; // Default goal
+        let dailyGoal = 2000; // Default goal
+        
+        if (profile?.dailyGoal && typeof profile.dailyGoal === 'object') {
+          const goalObj = profile.dailyGoal as any;
+          if (goalObj.calories && typeof goalObj.calories === 'number') {
+            dailyGoal = goalObj.calories;
+          }
+        }
         
         // Get today's logs
         const today = new Date();

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -194,10 +193,10 @@ const AnalysisReports = () => {
             ) : (
               <ChartContainer
                 config={{
-                  calories: { label: 'Calories' },
-                  protein: { label: 'Protein', theme: { light: '#3b82f6' } },
-                  carbs: { label: 'Carbs', theme: { light: '#10b981' } },
-                  fat: { label: 'Fat', theme: { light: '#ef4444' } },
+                  calories: { label: 'Calories', theme: { light: '#4ECDC4', dark: '#4ECDC4' } },
+                  protein: { label: 'Protein', theme: { light: '#3b82f6', dark: '#3b82f6' } },
+                  carbs: { label: 'Carbs', theme: { light: '#10b981', dark: '#10b981' } },
+                  fat: { label: 'Fat', theme: { light: '#ef4444', dark: '#ef4444' } },
                 }}
                 className="aspect-[2/1]"
               >

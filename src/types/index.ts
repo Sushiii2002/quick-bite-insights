@@ -12,11 +12,13 @@ export interface User {
   };
 }
 
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
 export interface FoodLog {
   id?: string;
   userId: string;
   foodName: string;
-  foodId?: string;
+  foodId?: string | null;
   calories: number;
   protein: number;
   carbs: number;
@@ -24,7 +26,7 @@ export interface FoodLog {
   fiber?: number;
   portionSize: number;
   portionUnit: string;
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  mealType: MealType;
   loggedAt: Date;
 }
 
@@ -36,5 +38,3 @@ export interface DailyNutrition {
   fat: number;
   fiber: number;
 }
-
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';

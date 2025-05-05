@@ -17,6 +17,13 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { fetchUserProfile, updateUserProfile, fetchFavoriteFoods } from '@/services/supabaseService';
 
+interface DailyGoals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 const Profile = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -29,7 +36,7 @@ const Profile = () => {
       protein: 100,
       carbs: 200,
       fat: 65
-    }
+    } as DailyGoals
   });
   const [isLoading, setIsLoading] = useState(true);
   const [favoriteItems, setFavoriteItems] = useState<{foodName: string, calories: number}[]>([]);
@@ -44,16 +51,28 @@ const Profile = () => {
         // Load user profile
         const userProfile = await fetchUserProfile(user.id);
         if (userProfile) {
+          let dailyGoals: DailyGoals = {
+            calories: 2000,
+            protein: 100,
+            carbs: 200,
+            fat: 65
+          };
+          
+          if (userProfile.dailyGoal && typeof userProfile.dailyGoal === 'object') {
+            const goalObj = userProfile.dailyGoal as any;
+            dailyGoals = {
+              calories: typeof goalObj.calories === 'number' ? goalObj.calories : 2000,
+              protein: typeof goalObj.protein === 'number' ? goalObj.protein : 100,
+              carbs: typeof goalObj.carbs === 'number' ? goalObj.carbs : 200,
+              fat: typeof goalObj.fat === 'number' ? goalObj.fat : 65
+            };
+          }
+          
           setProfile({
             email: userProfile.email,
             height: userProfile.height || 175,
             weight: userProfile.weight || 70,
-            dailyGoals: userProfile.dailyGoal || {
-              calories: 2000,
-              protein: 100,
-              carbs: 200,
-              fat: 65
-            }
+            dailyGoals
           });
         }
         

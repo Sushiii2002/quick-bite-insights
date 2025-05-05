@@ -214,7 +214,7 @@ export const fetchFoodLogs = async (
       fiber: log.fiber || 0,
       portionSize: log.portion_size,
       portionUnit: log.portion_unit,
-      mealType: log.meal_type,
+      mealType: log.meal_type as MealType, // Type assertion to ensure it matches our expected type
       loggedAt: new Date(log.logged_at),
     }));
   } catch (error) {
@@ -259,9 +259,14 @@ export const fetchFavoriteFoods = async (userId: string, limit: number = 6): Pro
         fiber: log.fiber || 0,
         portionSize: log.portion_size,
         portionUnit: log.portion_unit,
-        mealType: log.meal_type,
+        mealType: log.meal_type as MealType,
         loggedAt: new Date(log.logged_at),
       }));
+    }
+
+    if (!data) {
+      console.error('No data returned from get_favorite_foods RPC');
+      return [];
     }
 
     return data.map((log: any) => ({
@@ -276,7 +281,7 @@ export const fetchFavoriteFoods = async (userId: string, limit: number = 6): Pro
       fiber: log.fiber || 0,
       portionSize: log.portion_size,
       portionUnit: log.portion_unit,
-      mealType: log.meal_type,
+      mealType: log.meal_type as MealType,
       loggedAt: new Date(log.logged_at),
     }));
   } catch (error) {
