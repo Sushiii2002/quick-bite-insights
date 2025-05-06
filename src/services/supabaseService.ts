@@ -1,6 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { FoodLog, MealType, WaterIntake } from "@/types";
-import { FatSecretFood } from "@/types";
+import { FoodLog, MealType, WaterIntake, FatSecretFood } from "@/types";
 
 // User quick adds
 export interface QuickAddItem {
@@ -418,7 +418,8 @@ export const fetchUserProfile = async (userId: string) => {
       email: data.email,
       height: data.height,
       weight: data.weight,
-      dailyGoal: data.daily_goal
+      dailyGoal: data.daily_goal,
+      dailyData: data.daily_data
     };
   } catch (error) {
     console.error('Error fetching user profile:', error);

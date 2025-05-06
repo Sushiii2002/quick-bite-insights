@@ -9,6 +9,12 @@ export interface User {
     carbs: number;
     fat: number;
   };
+  dailyData?: {
+    [date: string]: {
+      water_glasses?: number;
+      // Other daily tracking data can be added here in the future
+    };
+  };
 }
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'meal';
