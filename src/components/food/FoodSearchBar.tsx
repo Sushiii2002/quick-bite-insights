@@ -24,14 +24,29 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
       }
 
       setLoading(true);
-      const searchResults = await searchFoods(query);
-      setResults(searchResults);
-      setLoading(false);
+      try {
+        const searchResults = await searchFoods(query);
+        setResults(searchResults);
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
     const debounce = setTimeout(fetchResults, 500);
     return () => clearTimeout(debounce);
   }, [query]);
+
+  // Helper function to get nutritional info for display
+  const getServingInfo = (food: FatSecretFood) => {
+    const serving = Array.isArray(food.servings?.serving) 
+      ? food.servings.serving[0] 
+      : food.servings?.serving;
+    
+    return serving;
+  };
 
   return (
     <div className="relative w-full">
@@ -59,25 +74,33 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
             <div className="p-4 text-center text-sm">Loading...</div>
           ) : results.length > 0 ? (
             <ul>
-              {results.map((item, index) => (
-                <li
-                  key={index}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
-                  onClick={() => {
-                    onSelect(item);
-                    setShowResults(false);
-                    setQuery('');
-                  }}
-                >
-                  {/* FatSecret API doesn't return thumbnail images the same way as Nutritionix */}
-                  <div>
-                    <div className="font-medium">{item.food_name}</div>
-                    {item.brand_name && (
-                      <div className="text-xs text-gray-500">{item.brand_name}</div>
+              {results.map((item, index) => {
+                const serving = getServingInfo(item);
+                
+                return (
+                  <li
+                    key={index}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
+                    onClick={() => {
+                      onSelect(item);
+                      setShowResults(false);
+                      setQuery('');
+                    }}
+                  >
+                    <div>
+                      <div className="font-medium">{item.food_name}</div>
+                      {item.brand_name && (
+                        <div className="text-xs text-gray-500">{item.brand_name}</div>
+                      )}
+                    </div>
+                    {serving && (
+                      <div className="text-sm text-gray-600">
+                        {serving.calories} cal
+                      </div>
                     )}
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <div className="p-4 text-center text-sm">No results found</div>
