@@ -1,7 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { FoodLog, MealType, WaterIntake } from "@/types";
-import { FatSecretFood } from "@/services/fatSecretAPI";
+import { FatSecretFood } from "@/types";
 
 // User quick adds
 export interface QuickAddItem {

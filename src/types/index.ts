@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   email: string;
@@ -12,7 +11,7 @@ export interface User {
   };
 }
 
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'meal';
 
 export interface FoodLog {
   id?: string;
