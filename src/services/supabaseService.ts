@@ -297,7 +297,7 @@ export const fetchFavoriteFoods = async (userId: string, limit: number = 6): Pro
       return [];
     }
     
-    return fallbackData.map(log => ({
+    return fallbackData.map((log: any) => ({
       id: log.id,
       userId: log.user_id,
       foodName: log.food_name,
