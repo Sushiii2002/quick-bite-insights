@@ -3,15 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { searchFoods, SearchResult } from '@/services/nutritionixAPI';
+import { searchFoods } from '@/services/fatSecretAPI';
+import { FatSecretFood } from '@/types';
 
 interface FoodSearchBarProps {
-  onSelect: (food: SearchResult) => void;
+  onSelect: (food: FatSecretFood) => void;
 }
 
 const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<FatSecretFood[]>([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
@@ -68,13 +69,7 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
                     setQuery('');
                   }}
                 >
-                  {item.photo?.thumb && (
-                    <img
-                      src={item.photo.thumb}
-                      alt={item.food_name}
-                      className="w-8 h-8 rounded mr-2 object-cover"
-                    />
-                  )}
+                  {/* FatSecret API doesn't return thumbnail images the same way as Nutritionix */}
                   <div>
                     <div className="font-medium">{item.food_name}</div>
                     {item.brand_name && (
