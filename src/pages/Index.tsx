@@ -1,15 +1,22 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // For demo purposes, redirect to auth page
-    // In a real app with Supabase, we would check auth state here
-    navigate('/auth');
-  }, [navigate]);
+    if (!loading) {
+      // If authenticated, go to home, otherwise go to auth page
+      if (user) {
+        navigate('/home');
+      } else {
+        navigate('/auth');
+      }
+    }
+  }, [navigate, user, loading]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

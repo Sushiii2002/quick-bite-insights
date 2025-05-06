@@ -14,6 +14,7 @@ import Profile from "@/pages/Profile";
 import Auth from "@/pages/Auth";
 import AIChat from "@/pages/AIChat";
 import NotFound from "@/pages/NotFound";
+import Index from "@/pages/Index";
 
 // Styles
 import "./App.css";
@@ -23,12 +24,13 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/ai-chat" element={<PrivateRoute><AIChat /></PrivateRoute>} />
-            <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
+            <Route path="/" element={<Index />} />
+            <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
             <Route path="/search" element={<PrivateRoute><Search /></PrivateRoute>} />
             <Route path="/food-image" element={<PrivateRoute><FoodImage /></PrivateRoute>} />
             <Route path="/analysis" element={<PrivateRoute><AnalysisReports /></PrivateRoute>} />
@@ -36,8 +38,8 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
-        </BrowserRouter>
-      </AuthProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
