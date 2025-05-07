@@ -1,6 +1,6 @@
 
 // Use OAuth 2.0 credentials for FatSecret
-const CLIENT_ID = "02cd317bd67546c2adc92442ccc3e27";
+const CLIENT_ID = "02cd317bd67546c2adc92442ccc3e277"; // Fixed client ID
 const CLIENT_SECRET = "fd77bf8995d943d1bc088339095dd8d4";
 
 const BASE_URL = "https://platform.fatsecret.com/rest/server.api";
@@ -45,17 +45,23 @@ const getAccessToken = async (): Promise<string> => {
   }
 };
 
-// Search for foods
+// Search for foods using v3 API
 export const searchFoods = async (query: string, maxResults = 10): Promise<any[]> => {
   try {
     const token = await getAccessToken();
     
+    // Updated to v3 API with correct parameters
     const params = new URLSearchParams({
-      method: "foods.search",
+      method: "foods.search.v3",
       search_expression: query,
       format: "json",
-      max_results: maxResults.toString()
+      max_results: maxResults.toString(),
+      page_number: "0",
+      include_sub_categories: "true",
+      flag_default_serving: "true"
     });
+    
+    console.log("Searching foods with params:", params.toString());
     
     const response = await fetch(`${BASE_URL}?${params.toString()}`, {
       headers: {
@@ -64,16 +70,17 @@ export const searchFoods = async (query: string, maxResults = 10): Promise<any[]
     });
     
     if (!response.ok) {
-      throw new Error("Failed to search foods");
+      throw new Error(`Failed to search foods: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log("Food search response:", data);
     
-    if (data.foods && data.foods.food) {
+    if (data.foods_search && data.foods_search.results && data.foods_search.results.food) {
       // Handle single or multiple results
-      return Array.isArray(data.foods.food) 
-        ? data.foods.food 
-        : [data.foods.food];
+      return Array.isArray(data.foods_search.results.food) 
+        ? data.foods_search.results.food 
+        : [data.foods_search.results.food];
     }
     
     return [];
@@ -83,16 +90,19 @@ export const searchFoods = async (query: string, maxResults = 10): Promise<any[]
   }
 };
 
-// Get food details
-export const getFoodDetails = async (foodId: string): Promise<any> => {
+// Autocomplete food search (new implementation)
+export const autocompleteFoods = async (query: string, maxResults = 10): Promise<string[]> => {
   try {
     const token = await getAccessToken();
     
     const params = new URLSearchParams({
-      method: "food.get.v2",
-      food_id: foodId,
-      format: "json"
+      method: "foods.autocomplete.v2",
+      expression: query,
+      format: "json",
+      max_results: maxResults.toString()
     });
+    
+    console.log("Autocompleting foods with params:", params.toString());
     
     const response = await fetch(`${BASE_URL}?${params.toString()}`, {
       headers: {
@@ -101,10 +111,53 @@ export const getFoodDetails = async (foodId: string): Promise<any> => {
     });
     
     if (!response.ok) {
-      throw new Error("Failed to get food details");
+      throw new Error(`Failed to get autocomplete suggestions: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log("Autocomplete response:", data);
+    
+    if (data.suggestions && data.suggestions.suggestion) {
+      return Array.isArray(data.suggestions.suggestion) 
+        ? data.suggestions.suggestion 
+        : [data.suggestions.suggestion];
+    }
+    
+    return [];
+  } catch (error) {
+    console.error("Error getting autocomplete suggestions:", error);
+    return [];
+  }
+};
+
+// Get food details
+export const getFoodDetails = async (foodId: string): Promise<any> => {
+  try {
+    const token = await getAccessToken();
+    
+    // Updated to v3 API
+    const params = new URLSearchParams({
+      method: "food.get.v3",
+      food_id: foodId,
+      format: "json",
+      include_sub_categories: "true",
+      flag_default_serving: "true"
+    });
+    
+    console.log("Getting food details with params:", params.toString());
+    
+    const response = await fetch(`${BASE_URL}?${params.toString()}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to get food details: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log("Food details response:", data);
     return data.food;
   } catch (error) {
     console.error("Error getting food details:", error);
@@ -112,7 +165,7 @@ export const getFoodDetails = async (foodId: string): Promise<any> => {
   }
 };
 
-// Search for recipes
+// Search for recipes with v3 API
 export const searchRecipes = async (
   query: string, 
   maxResults = 10,
@@ -122,20 +175,24 @@ export const searchRecipes = async (
   try {
     const token = await getAccessToken();
     
+    // Updated to v3 API
     const params = new URLSearchParams({
-      method: "recipes.search",
+      method: "recipes.search.v3",
       search_expression: query,
       format: "json",
-      max_results: maxResults.toString()
+      max_results: maxResults.toString(),
+      page_number: "0"
     });
     
     if (recipeType) {
-      params.append("recipe_type", recipeType);
+      params.append("recipe_types", recipeType);
     }
     
     if (region) {
       params.append("region", region);
     }
+    
+    console.log("Searching recipes with params:", params.toString());
     
     const response = await fetch(`${BASE_URL}?${params.toString()}`, {
       headers: {
@@ -144,16 +201,17 @@ export const searchRecipes = async (
     });
     
     if (!response.ok) {
-      throw new Error("Failed to search recipes");
+      throw new Error(`Failed to search recipes: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log("Recipe search response:", data);
     
-    if (data.recipes && data.recipes.recipe) {
+    if (data.recipes_search && data.recipes_search.results && data.recipes_search.results.recipe) {
       // Handle single or multiple results
-      return Array.isArray(data.recipes.recipe) 
-        ? data.recipes.recipe 
-        : [data.recipes.recipe];
+      return Array.isArray(data.recipes_search.results.recipe) 
+        ? data.recipes_search.results.recipe 
+        : [data.recipes_search.results.recipe];
     }
     
     return [];
@@ -169,10 +227,12 @@ export const getRecipeDetails = async (recipeId: string): Promise<any> => {
     const token = await getAccessToken();
     
     const params = new URLSearchParams({
-      method: "recipe.get",
+      method: "recipe.get.v3",
       recipe_id: recipeId,
       format: "json"
     });
+    
+    console.log("Getting recipe details with params:", params.toString());
     
     const response = await fetch(`${BASE_URL}?${params.toString()}`, {
       headers: {
@@ -181,10 +241,11 @@ export const getRecipeDetails = async (recipeId: string): Promise<any> => {
     });
     
     if (!response.ok) {
-      throw new Error("Failed to get recipe details");
+      throw new Error(`Failed to get recipe details: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log("Recipe details response:", data);
     return data.recipe;
   } catch (error) {
     console.error("Error getting recipe details:", error);
@@ -200,29 +261,49 @@ export const recognizeFoodImage = async (imageFile: File): Promise<any> => {
     // Resize and optimize image if needed
     const optimizedImage = await optimizeImage(imageFile);
     
-    const formData = new FormData();
-    formData.append("method", "food.image.recognize");
-    formData.append("format", "json");
-    formData.append("image", optimizedImage);
+    // For image recognition v1, we need to convert to base64
+    const imageBase64 = await fileToBase64(optimizedImage);
+    
+    // Updated to v1 API with correct parameters
+    const requestBody = JSON.stringify({
+      method: "image.recognition.v1",
+      format: "json",
+      image_b64: imageBase64.split(',')[1], // Remove data URL prefix
+      include_food_data: true
+    });
+    
+    console.log("Sending image recognition request");
     
     const response = await fetch(BASE_URL, {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: formData
+      body: requestBody
     });
     
     if (!response.ok) {
-      throw new Error("Failed to recognize food image");
+      throw new Error(`Failed to recognize food image: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log("Image recognition response:", data);
     return data;
   } catch (error) {
     console.error("Error recognizing food image:", error);
     throw error;
   }
+};
+
+// Helper function to convert File to base64
+const fileToBase64 = (file: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
 };
 
 // Helper to optimize image for API

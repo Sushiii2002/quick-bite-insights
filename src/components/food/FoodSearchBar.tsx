@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { searchFoods } from '@/services/fatSecretAPI';
+import { searchFoods, autocompleteFoods } from '@/services/fatSecretAPI';
 import { FatSecretFood } from '@/types';
 
 interface FoodSearchBarProps {
@@ -13,9 +13,34 @@ interface FoodSearchBarProps {
 const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FatSecretFood[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // Fetch autocomplete suggestions
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (query.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      try {
+        const results = await autocompleteFoods(query);
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+        setSuggestions([]);
+      }
+    };
+
+    const debounce = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(debounce);
+  }, [query]);
+
+  // Fetch search results
   useEffect(() => {
     const fetchResults = async () => {
       if (query.length < 2) {
@@ -26,6 +51,7 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
       setLoading(true);
       try {
         const searchResults = await searchFoods(query);
+        console.log("Search results received:", searchResults);
         setResults(searchResults);
       } catch (error) {
         console.error('Error fetching search results:', error);
@@ -41,11 +67,33 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
 
   // Helper function to get nutritional info for display
   const getServingInfo = (food: FatSecretFood) => {
-    const serving = Array.isArray(food.servings?.serving) 
-      ? food.servings.serving[0] 
-      : food.servings?.serving;
+    // For v3 API responses
+    if (food.servings && food.servings.serving) {
+      const serving = Array.isArray(food.servings.serving) 
+        ? food.servings.serving.find(s => s.is_default === 1) || food.servings.serving[0] 
+        : food.servings.serving;
+      
+      return serving;
+    }
+    return null;
+  };
+
+  const handleSuggestionClick = async (suggestion: string) => {
+    setQuery(suggestion);
+    setShowSuggestions(false);
     
-    return serving;
+    // Immediately search for this suggestion
+    setLoading(true);
+    try {
+      const searchResults = await searchFoods(suggestion);
+      setResults(searchResults);
+      setShowResults(true);
+    } catch (error) {
+      console.error('Error fetching search results:', error);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,12 +108,40 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
-              setShowResults(true);
+              setShowResults(e.target.value.length >= 2);
+              setShowSuggestions(e.target.value.length >= 2);
             }}
-            onFocus={() => setShowResults(true)}
+            onFocus={() => setShowSuggestions(query.length >= 2)}
           />
+          
+          {/* Autocomplete suggestions */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg max-h-40 overflow-auto">
+              <ul>
+                {suggestions.map((suggestion, index) => (
+                  <li
+                    key={`suggestion-${index}`}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
-        <Button type="submit">Search</Button>
+        <Button 
+          type="button" 
+          onClick={() => {
+            if (query.length >= 2) {
+              setShowResults(true);
+              setShowSuggestions(false);
+            }
+          }}
+        >
+          Search
+        </Button>
       </div>
 
       {showResults && query.length >= 2 && (
@@ -82,6 +158,7 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
                     key={index}
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
                     onClick={() => {
+                      console.log("Selected food:", item);
                       onSelect(item);
                       setShowResults(false);
                       setQuery('');
