@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { searchFoods, searchRecipes, getFoodDetails, getRecipeDetails } from '@/services/fatSecretAPI';
 import { logFoodEntry } from '@/services/supabaseService';
 import FoodLogForm from '@/components/food/FoodLogForm';
+import { MealType } from '@/types';
 
 interface SearchState {
   query: string;
