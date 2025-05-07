@@ -5,15 +5,25 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { searchFoods } from '@/services/fatSecretAPI';
 import { FatSecretFood } from '@/types';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface FoodSearchBarProps {
   onSelect: (food: FatSecretFood) => void;
 }
 
+// Extend the FatSecretFood interface for the v1 API results
+interface FatSecretFoodV1 {
+  food_id: string;
+  food_name: string;
+  brand_name?: string;
+  food_description?: string; // This is present in v1 API responses
+  food_type?: string;
+  food_url?: string;
+}
+
 const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<FatSecretFood[]>([]);
+  const [results, setResults] = useState<FatSecretFoodV1[]>([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const { toast } = useToast();
@@ -71,7 +81,7 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
   };
 
   // Parse nutrition info from food description (v1 API format)
-  const parseNutritionInfo = (description: string): { calories?: number, fat?: number, carbs?: number, protein?: number } => {
+  const parseNutritionInfo = (description: string | undefined): { calories?: number, fat?: number, carbs?: number, protein?: number } => {
     try {
       const info: { calories?: number, fat?: number, carbs?: number, protein?: number } = {};
       
@@ -149,7 +159,7 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
           ) : results.length > 0 ? (
             <ul>
               {results.map((item, index) => {
-                const nutritionInfo = parseNutritionInfo(item.food_description || '');
+                const nutritionInfo = parseNutritionInfo(item.food_description);
                 
                 return (
                   <li
@@ -185,7 +195,9 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
                       {item.brand_name && (
                         <div className="text-xs text-gray-500">{item.brand_name}</div>
                       )}
-                      <div className="text-xs text-gray-500">{item.food_description}</div>
+                      {item.food_description && (
+                        <div className="text-xs text-gray-500">{item.food_description}</div>
+                      )}
                     </div>
                     {nutritionInfo.calories && (
                       <div className="text-sm text-gray-600">

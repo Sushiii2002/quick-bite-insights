@@ -1,23 +1,16 @@
 
 import React, { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/context/AuthContext';
-import { getFoodDetails, getRecipeDetails } from '@/services/fatSecretAPI';
-import { logFoodEntry } from '@/services/supabaseService';
-import FoodLogForm from '@/components/food/FoodLogForm';
-import { MealType, FatSecretFood } from '@/types';
+import { MealType } from '@/types';
 import FoodSearchBar from '@/components/food/FoodSearchBar';
-
-interface SearchState {
-  isLoading: boolean;
-  selectedFood: FatSecretFood | null;
-  selectedRecipe: any | null;
-  activeTab: 'foods' | 'recipes';
-}
+import SelectedFoodCard from '@/components/search/SelectedFoodCard';
+import SelectedRecipeCard from '@/components/search/SelectedRecipeCard';
+import EmptySearchState from '@/components/search/EmptySearchState';
+import { SearchState } from '@/components/search/types';
+import { fetchFoodDetails, fetchRecipeDetails, logFood, logRecipe } from '@/components/search/searchService';
 
 const Search = () => {
   const [state, setState] = useState<SearchState>({
@@ -27,14 +20,13 @@ const Search = () => {
     activeTab: 'foods'
   });
   
-  const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleFoodSelect = async (food: FatSecretFood) => {
+  const handleFoodSelect = async (food: any) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
       
-      const foodDetails = await getFoodDetails(food.food_id);
+      const foodDetails = await fetchFoodDetails(food);
       if (foodDetails) {
         setState(prev => ({ 
           ...prev, 
@@ -42,15 +34,12 @@ const Search = () => {
           selectedRecipe: null,
           isLoading: false
         }));
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
       }
     } catch (error) {
-      console.error('Error fetching food details:', error);
+      console.error('Error in food selection:', error);
       setState(prev => ({ ...prev, isLoading: false }));
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch food information. Please try again.',
-        variant: 'destructive',
-      });
     }
   };
 
@@ -58,7 +47,7 @@ const Search = () => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
       
-      const recipeDetails = await getRecipeDetails(recipe.recipe_id);
+      const recipeDetails = await fetchRecipeDetails(recipe);
       if (recipeDetails) {
         setState(prev => ({ 
           ...prev, 
@@ -66,100 +55,37 @@ const Search = () => {
           selectedFood: null,
           isLoading: false
         }));
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
       }
     } catch (error) {
-      console.error('Error fetching recipe details:', error);
+      console.error('Error in recipe selection:', error);
       setState(prev => ({ ...prev, isLoading: false }));
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch recipe information. Please try again.',
-        variant: 'destructive',
-      });
     }
   };
 
   const handleLogFood = async (logData: any) => {
     if (!user || !state.selectedFood) return;
     
-    try {
-      const logId = await logFoodEntry(
-        user.id,
-        state.selectedFood,
-        logData.mealType as MealType,
-        logData.portionSize
-      );
-      
-      if (logId) {
-        toast({
-          title: 'Food Logged',
-          description: `${logData.foodName} added to your diary.`,
-        });
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to log food. Please try again.',
-          variant: 'destructive',
-        });
-      }
-      
+    const result = await logFood(
+      user.id,
+      state.selectedFood,
+      logData.mealType as MealType,
+      logData.portionSize
+    );
+    
+    if (result) {
       setState(prev => ({ ...prev, selectedFood: null }));
-    } catch (error) {
-      console.error('Error logging food:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to log food. Please try again.',
-        variant: 'destructive',
-      });
     }
   };
 
-  const handleLogRecipe = async (recipe: any) => {
+  const handleLogRecipe = async () => {
     if (!user || !state.selectedRecipe) return;
     
-    // For recipes, we log based on the nutrition facts of the recipe
-    const { recipe_name, nutrition_facts } = state.selectedRecipe;
+    const result = await logRecipe(user.id, state.selectedRecipe);
     
-    try {
-      const logId = await logFoodEntry(
-        user.id,
-        {
-          food_name: recipe_name,
-          servings: {
-            serving: {
-              calories: nutrition_facts?.calories || 0,
-              carbohydrate: nutrition_facts?.carbohydrate || 0,
-              protein: nutrition_facts?.protein || 0,
-              fat: nutrition_facts?.fat || 0,
-              fiber: nutrition_facts?.fiber || 0,
-              number_of_units: 1
-            }
-          }
-        },
-        'dinner' as MealType,
-        1 // Default to 1 serving
-      );
-      
-      if (logId) {
-        toast({
-          title: 'Recipe Logged',
-          description: `${recipe_name} added to your diary.`,
-        });
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to log recipe. Please try again.',
-          variant: 'destructive',
-        });
-      }
-      
+    if (result) {
       setState(prev => ({ ...prev, selectedRecipe: null }));
-    } catch (error) {
-      console.error('Error logging recipe:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to log recipe. Please try again.',
-        variant: 'destructive',
-      });
     }
   };
 
@@ -203,96 +129,23 @@ const Search = () => {
       )}
 
       {state.selectedFood && (
-        <div className="mt-6">
-          <FoodLogForm 
-            food={{
-              ...state.selectedFood,
-              nf_calories: state.selectedFood.servings.serving.calories,
-              nf_protein: state.selectedFood.servings.serving.protein,
-              nf_total_carbohydrate: state.selectedFood.servings.serving.carbohydrate,
-              nf_total_fat: state.selectedFood.servings.serving.fat,
-              nf_dietary_fiber: state.selectedFood.servings.serving.fiber,
-              serving_qty: state.selectedFood.servings.serving.number_of_units || 1,
-              serving_unit: state.selectedFood.servings.serving.measurement_description || 'serving'
-            }}
-            onSubmit={handleLogFood}
-            onCancel={() => setState(prev => ({ ...prev, selectedFood: null }))}
-          />
-        </div>
+        <SelectedFoodCard 
+          food={state.selectedFood}
+          onSubmit={handleLogFood}
+          onCancel={() => setState(prev => ({ ...prev, selectedFood: null }))}
+        />
       )}
 
       {state.selectedRecipe && (
-        <Card className="mt-6 p-4">
-          <h2 className="text-xl font-bold mb-3">{state.selectedRecipe.recipe_name}</h2>
-          
-          {state.selectedRecipe.recipe_image && (
-            <img 
-              src={state.selectedRecipe.recipe_image} 
-              alt={state.selectedRecipe.recipe_name}
-              className="w-full h-48 object-cover rounded-md mb-4" 
-            />
-          )}
-          
-          {state.selectedRecipe.recipe_description && (
-            <p className="mb-4 text-muted-foreground">{state.selectedRecipe.recipe_description}</p>
-          )}
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="p-3 bg-gray-50 rounded">
-              <p className="text-sm font-medium">Preparation</p>
-              <p className="text-lg">{state.selectedRecipe.preparation_time_min || 'N/A'} min</p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded">
-              <p className="text-sm font-medium">Cook Time</p>
-              <p className="text-lg">{state.selectedRecipe.cooking_time_min || 'N/A'} min</p>
-            </div>
-          </div>
-          
-          <div className="mb-4">
-            <h3 className="font-medium mb-2">Nutrition Facts (per serving)</h3>
-            <div className="grid grid-cols-4 gap-2">
-              <div className="p-2 bg-gray-50 text-center rounded">
-                <p className="text-lg font-medium">{state.selectedRecipe.nutrition_facts?.calories || 'N/A'}</p>
-                <p className="text-xs">calories</p>
-              </div>
-              <div className="p-2 bg-blue-50 text-center rounded">
-                <p className="text-lg font-medium">{state.selectedRecipe.nutrition_facts?.protein || 'N/A'}g</p>
-                <p className="text-xs">protein</p>
-              </div>
-              <div className="p-2 bg-green-50 text-center rounded">
-                <p className="text-lg font-medium">{state.selectedRecipe.nutrition_facts?.carbohydrate || 'N/A'}g</p>
-                <p className="text-xs">carbs</p>
-              </div>
-              <div className="p-2 bg-red-50 text-center rounded">
-                <p className="text-lg font-medium">{state.selectedRecipe.nutrition_facts?.fat || 'N/A'}g</p>
-                <p className="text-xs">fat</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex space-x-3">
-            <Button 
-              variant="outline" 
-              className="flex-1"
-              onClick={() => setState(prev => ({ ...prev, selectedRecipe: null }))}
-            >
-              Cancel
-            </Button>
-            <Button 
-              className="flex-1 bg-primary"
-              onClick={() => handleLogRecipe(state.selectedRecipe)}
-            >
-              Log Recipe
-            </Button>
-          </div>
-        </Card>
+        <SelectedRecipeCard 
+          recipe={state.selectedRecipe}
+          onLogRecipe={handleLogRecipe}
+          onCancel={() => setState(prev => ({ ...prev, selectedRecipe: null }))}
+        />
       )}
 
       {!state.selectedFood && !state.selectedRecipe && !state.isLoading && (
-        <div className="mt-12 text-center text-muted-foreground">
-          <p>Search for a food or recipe to log it to your diary</p>
-          <p className="text-sm mt-2">Try searching for: chicken, salad, or pasta</p>
-        </div>
+        <EmptySearchState />
       )}
     </Layout>
   );
