@@ -1,6 +1,5 @@
-
 // Use OAuth 2.0 credentials for FatSecret
-const CLIENT_ID = "02cd317bd67546c2adc92442ccc3e277"; // Corrected client ID
+const CLIENT_ID = "02cd317bd67546c2adc92442ccc3e277"; // Client ID
 const CLIENT_SECRET = "fd77bf8995d943d1bc088339095dd8d4";
 
 const BASE_URL = "https://platform.fatsecret.com/rest/server.api";
@@ -19,21 +18,24 @@ const getAccessToken = async (): Promise<string> => {
   const tokenEndpoint = "https://oauth.fatsecret.com/connect/token";
   
   try {
+    console.log("Requesting new FatSecret access token...");
     const response = await fetch(tokenEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "Authorization": `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`
       },
-      body: "grant_type=client_credentials&scope=basic"
+      body: "grant_type=client_credentials&scope=basic premier"
     });
 
     const data = await response.json();
     
     if (!response.ok) {
+      console.error("Failed to obtain access token:", data);
       throw new Error(`Failed to obtain access token: ${JSON.stringify(data)}`);
     }
     
+    console.log("New access token obtained successfully");
     accessToken = data.access_token;
     // Set expiry to be a bit before actual expiry for safety
     tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000;
@@ -61,7 +63,7 @@ export const searchFoods = async (query: string, maxResults = 10): Promise<any[]
       flag_default_serving: "true"
     });
     
-    console.log("Searching foods with params:", params.toString());
+    console.log(`Searching foods with query: "${query}" and params:`, params.toString());
     
     const response = await fetch(`${BASE_URL}?${params.toString()}`, {
       headers: {
@@ -70,6 +72,8 @@ export const searchFoods = async (query: string, maxResults = 10): Promise<any[]
     });
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to search foods: ${response.status} ${response.statusText}`, errorText);
       throw new Error(`Failed to search foods: ${response.status} ${response.statusText}`);
     }
     
@@ -78,20 +82,24 @@ export const searchFoods = async (query: string, maxResults = 10): Promise<any[]
     
     if (data.foods_search && data.foods_search.results && data.foods_search.results.food) {
       // Handle single or multiple results
-      return Array.isArray(data.foods_search.results.food) 
+      const foods = Array.isArray(data.foods_search.results.food) 
         ? data.foods_search.results.food 
         : [data.foods_search.results.food];
+      
+      console.log(`Found ${foods.length} foods for query "${query}"`);
+      return foods;
     }
     
+    console.log(`No foods found for query "${query}"`);
     return [];
   } catch (error) {
-    console.error("Error searching foods:", error);
+    console.error(`Error searching foods with query "${query}":`, error);
     return [];
   }
 };
 
 // Properly implement autocomplete food search using v2 API
-export const autocompleteFoods = async (query: string, maxResults = 10): Promise<string[]> => {
+export const autocompleteFoods = async (query: string, maxResults = 5): Promise<string[]> => {
   try {
     const token = await getAccessToken();
     
@@ -103,7 +111,7 @@ export const autocompleteFoods = async (query: string, maxResults = 10): Promise
       max_results: maxResults.toString()
     });
     
-    console.log("Autocompleting foods with params:", params.toString());
+    console.log(`Autocompleting foods with query: "${query}" and params:`, params.toString());
     
     const response = await fetch(`${BASE_URL}?${params.toString()}`, {
       headers: {
@@ -112,6 +120,8 @@ export const autocompleteFoods = async (query: string, maxResults = 10): Promise
     });
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to get autocomplete suggestions: ${response.status} ${response.statusText}`, errorText);
       throw new Error(`Failed to get autocomplete suggestions: ${response.status} ${response.statusText}`);
     }
     
@@ -119,14 +129,18 @@ export const autocompleteFoods = async (query: string, maxResults = 10): Promise
     console.log("Autocomplete response:", data);
     
     if (data.suggestions && data.suggestions.suggestion) {
-      return Array.isArray(data.suggestions.suggestion) 
+      const suggestions = Array.isArray(data.suggestions.suggestion) 
         ? data.suggestions.suggestion 
         : [data.suggestions.suggestion];
+      
+      console.log(`Found ${suggestions.length} suggestions for query "${query}"`);
+      return suggestions;
     }
     
+    console.log(`No suggestions found for query "${query}"`);
     return [];
   } catch (error) {
-    console.error("Error getting autocomplete suggestions:", error);
+    console.error(`Error getting autocomplete suggestions for query "${query}":`, error);
     return [];
   }
 };

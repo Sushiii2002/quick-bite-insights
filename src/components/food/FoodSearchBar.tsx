@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,18 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
   const [results, setResults] = useState<FatSecretFood[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [autocompleteLoading, setAutocompleteLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when component mounts
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
 
   // Fetch autocomplete suggestions when user types
   useEffect(() => {
@@ -29,12 +38,15 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
       }
 
       try {
+        setAutocompleteLoading(true);
         const results = await autocompleteFoods(query);
         setSuggestions(results);
         setShowSuggestions(results.length > 0);
       } catch (error) {
         console.error('Error fetching suggestions:', error);
         setSuggestions([]);
+      } finally {
+        setAutocompleteLoading(false);
       }
     };
 
@@ -56,6 +68,7 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
   };
 
   const handleSuggestionClick = async (suggestion: string) => {
+    console.log(`Suggestion clicked: ${suggestion}`);
     setQuery(suggestion);
     setShowSuggestions(false);
     
@@ -63,6 +76,7 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
     setLoading(true);
     try {
       const searchResults = await searchFoods(suggestion);
+      console.log(`Search results for suggestion "${suggestion}":`, searchResults);
       setResults(searchResults);
       setShowResults(true);
     } catch (error) {
@@ -78,72 +92,109 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
     }
   };
 
+  const handleSearch = async () => {
+    console.log(`Searching for: ${query}`);
+    if (query.length >= 2) {
+      setLoading(true);
+      setShowSuggestions(false);
+      
+      try {
+        const searchResults = await searchFoods(query);
+        console.log(`Search results for "${query}":`, searchResults);
+        setResults(searchResults);
+        setShowResults(true);
+        
+        if (searchResults.length === 0) {
+          toast({
+            title: "No results found",
+            description: "Try a different search term"
+          });
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+        toast({
+          title: "Search Error",
+          description: "Failed to fetch food results",
+          variant: "destructive"
+        });
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   return (
     <div className="relative w-full">
       <div className="flex w-full items-center space-x-2">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
+            ref={searchInputRef}
             type="text"
             placeholder="Search for a food..."
             className="pl-8"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
-              setShowResults(e.target.value.length >= 2);
-              setShowSuggestions(e.target.value.length >= 2);
+              if (e.target.value.length >= 2) {
+                setShowSuggestions(true);
+              } else {
+                setShowSuggestions(false);
+                setShowResults(false);
+              }
             }}
             onFocus={() => setShowSuggestions(query.length >= 2)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
           />
           
+          {/* Loading indicator for autocomplete */}
+          {autocompleteLoading && (
+            <div className="absolute right-2 top-2">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+            </div>
+          )}
+          
           {/* Autocomplete suggestions */}
-          {showSuggestions && suggestions.length > 0 && (
+          {showSuggestions && (
             <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg max-h-40 overflow-auto">
-              <ul>
-                {suggestions.map((suggestion, index) => (
-                  <li
-                    key={`suggestion-${index}`}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    {suggestion}
-                  </li>
-                ))}
-              </ul>
+              {autocompleteLoading ? (
+                <div className="p-2 text-center text-sm">
+                  <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-primary rounded-full mx-auto"></div>
+                  <p className="text-xs mt-1">Loading suggestions...</p>
+                </div>
+              ) : suggestions.length > 0 ? (
+                <ul>
+                  {suggestions.map((suggestion, index) => (
+                    <li
+                      key={`suggestion-${index}`}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      {suggestion}
+                    </li>
+                  ))}
+                </ul>
+              ) : query.length >= 2 ? (
+                <div className="p-2 text-center text-sm">
+                  <p>No suggestions found</p>
+                </div>
+              ) : null}
             </div>
           )}
         </div>
         <Button 
           type="button" 
-          onClick={() => {
-            if (query.length >= 2) {
-              setLoading(true);
-              searchFoods(query)
-                .then(results => {
-                  setResults(results);
-                  setShowResults(true);
-                  if (results.length === 0) {
-                    toast({
-                      title: "No results found",
-                      description: "Try a different search term"
-                    });
-                  }
-                })
-                .catch(err => {
-                  console.error("Search error:", err);
-                  toast({
-                    title: "Search Error",
-                    description: "Failed to fetch food results",
-                    variant: "destructive"
-                  });
-                })
-                .finally(() => {
-                  setLoading(false);
-                  setShowSuggestions(false);
-                });
-            }
-          }}
+          onClick={handleSearch}
+          disabled={loading || query.length < 2}
         >
+          {loading ? (
+            <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-primary-foreground rounded-full mr-2"></div>
+          ) : null}
           Search
         </Button>
       </div>

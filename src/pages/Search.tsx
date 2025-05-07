@@ -1,35 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search as SearchIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { searchFoods, searchRecipes, getFoodDetails, getRecipeDetails } from '@/services/fatSecretAPI';
+import { getFoodDetails, getRecipeDetails } from '@/services/fatSecretAPI';
 import { logFoodEntry } from '@/services/supabaseService';
 import FoodLogForm from '@/components/food/FoodLogForm';
-import { MealType } from '@/types';
+import { MealType, FatSecretFood } from '@/types';
+import FoodSearchBar from '@/components/food/FoodSearchBar';
 
 interface SearchState {
-  query: string;
   isLoading: boolean;
-  foodResults: any[];
-  recipeResults: any[];
-  showResults: boolean;
-  selectedFood: any | null;
+  selectedFood: FatSecretFood | null;
   selectedRecipe: any | null;
   activeTab: 'foods' | 'recipes';
 }
 
 const Search = () => {
   const [state, setState] = useState<SearchState>({
-    query: '',
     isLoading: false,
-    foodResults: [],
-    recipeResults: [],
-    showResults: false,
     selectedFood: null,
     selectedRecipe: null,
     activeTab: 'foods'
@@ -38,49 +28,7 @@ const Search = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    // Debounced search for both foods and recipes
-    if (state.query.length < 2) return;
-
-    const searchTimer = setTimeout(async () => {
-      setState(prev => ({ ...prev, isLoading: true }));
-      
-      try {
-        // Search foods
-        const foodResults = await searchFoods(state.query);
-        
-        // Search recipes
-        const recipeResults = await searchRecipes(state.query);
-        
-        setState(prev => ({ 
-          ...prev, 
-          foodResults, 
-          recipeResults,
-          isLoading: false
-        }));
-      } catch (error) {
-        console.error('Error during search:', error);
-        setState(prev => ({ ...prev, isLoading: false }));
-        toast({
-          title: 'Search Error',
-          description: 'Failed to fetch search results. Please try again.',
-          variant: 'destructive',
-        });
-      }
-    }, 500);
-
-    return () => clearTimeout(searchTimer);
-  }, [state.query, toast]);
-
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (state.query.length >= 2) {
-      // Search is automatically triggered by the useEffect
-      setState(prev => ({ ...prev, showResults: true }));
-    }
-  };
-
-  const handleFoodSelect = async (food: any) => {
+  const handleFoodSelect = async (food: FatSecretFood) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
       
@@ -90,8 +38,7 @@ const Search = () => {
           ...prev, 
           selectedFood: foodDetails,
           selectedRecipe: null,
-          isLoading: false,
-          showResults: false
+          isLoading: false
         }));
       }
     } catch (error) {
@@ -115,8 +62,7 @@ const Search = () => {
           ...prev, 
           selectedRecipe: recipeDetails,
           selectedFood: null,
-          isLoading: false,
-          showResults: false
+          isLoading: false
         }));
       }
     } catch (error) {
@@ -137,7 +83,7 @@ const Search = () => {
       const logId = await logFoodEntry(
         user.id,
         state.selectedFood,
-        logData.mealType,
+        logData.mealType as MealType,
         logData.portionSize
       );
       
@@ -187,7 +133,7 @@ const Search = () => {
             }
           }
         },
-        'dinner' as MealType, // Changed from 'meal' to 'dinner' which is a valid MealType
+        'dinner' as MealType, // Using 'dinner' as a valid MealType
         1 // Default to 1 serving
       );
       
@@ -222,25 +168,9 @@ const Search = () => {
         <p className="text-sm text-muted-foreground">Find foods, recipes and log them in seconds</p>
       </div>
 
-      <form onSubmit={handleSearch} className="relative w-full mb-6">
-        <div className="flex w-full items-center space-x-2">
-          <div className="relative flex-1">
-            <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search for food or recipe..."
-              className="pl-8"
-              value={state.query}
-              onChange={(e) => setState(prev => ({ 
-                ...prev, 
-                query: e.target.value,
-                showResults: e.target.value.length >= 2
-              }))}
-            />
-          </div>
-          <Button type="submit">Search</Button>
-        </div>
-      </form>
+      <div className="mb-6">
+        <FoodSearchBar onSelect={handleFoodSelect} />
+      </div>
 
       <Tabs
         value={state.activeTab}
@@ -337,7 +267,7 @@ const Search = () => {
         </TabsContent>
       </Tabs>
 
-      {state.isLoading && !state.showResults && (
+      {state.isLoading && (
         <Card className="mt-6">
           <CardContent className="p-4 text-center">
             <div className="animate-pulse">Loading...</div>
@@ -431,7 +361,7 @@ const Search = () => {
         </Card>
       )}
 
-      {!state.selectedFood && !state.selectedRecipe && !state.isLoading && !state.showResults && (
+      {!state.selectedFood && !state.selectedRecipe && !state.isLoading && (
         <div className="mt-12 text-center text-muted-foreground">
           <p>Search for a food or recipe to log it to your diary</p>
           <p className="text-sm mt-2">Try searching for: chicken, salad, or pasta</p>
