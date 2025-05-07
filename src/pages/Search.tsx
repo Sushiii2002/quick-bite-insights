@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -187,7 +186,7 @@ const Search = () => {
             }
           }
         },
-        'meal', // Default to meal for recipes
+        'dinner' as MealType, // Changed from 'meal' to 'dinner' which is a valid MealType
         1 // Default to 1 serving
       );
       

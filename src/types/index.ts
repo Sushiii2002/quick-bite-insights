@@ -21,6 +21,12 @@ export interface FatSecretFood {
   servings: {
     serving: FatSecretServing | FatSecretServing[];
   };
+  food_images?: {
+    food_image: {
+      image_url: string;
+      image_type: string;
+    }[];
+  };
 }
 
 export interface FatSecretServing {
@@ -57,6 +63,31 @@ export interface FatSecretServing {
 
 // Meal types
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+// FoodLog type for tracking meals
+export interface FoodLog {
+  id: string;
+  userId: string;
+  foodName: string;
+  foodId?: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  sugar?: number;
+  portionSize: number;
+  portionUnit: string;
+  mealType: MealType;
+  loggedAt: Date;
+}
+
+// Water intake tracking
+export interface WaterIntake {
+  userId: string;
+  date: string;
+  glasses: number;
+}
 
 // Nutrient summary for cards
 export interface NutrientSummary {
