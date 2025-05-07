@@ -1,91 +1,72 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MealType } from '@/types';
 import FoodSearchBar from '@/components/food/FoodSearchBar';
-import SelectedFoodCard from '@/components/search/SelectedFoodCard';
-import SelectedRecipeCard from '@/components/search/SelectedRecipeCard';
-import EmptySearchState from '@/components/search/EmptySearchState';
-import { SearchState } from '@/components/search/types';
-import { fetchFoodDetails, fetchRecipeDetails, logFood, logRecipe } from '@/components/search/searchService';
+import FoodLogForm from '@/components/food/FoodLogForm';
+import { getNutrients, FoodItem, SearchResult } from '@/services/nutritionixAPI';
+import { useToast } from '@/components/ui/use-toast';
+import { FoodLog } from '@/types';
+import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from '@/context/AuthContext';
+import { logFoodEntry } from '@/services/supabaseService';
 
 const Search = () => {
-  const [state, setState] = useState<SearchState>({
-    isLoading: false,
-    selectedFood: null,
-    selectedRecipe: null,
-    activeTab: 'foods'
-  });
-  
+  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleFoodSelect = async (food: any) => {
+  const handleFoodSelect = async (food: SearchResult) => {
     try {
-      setState(prev => ({ ...prev, isLoading: true }));
-      
-      const foodDetails = await fetchFoodDetails(food);
-      if (foodDetails) {
-        setState(prev => ({ 
-          ...prev, 
-          selectedFood: foodDetails,
-          selectedRecipe: null,
-          isLoading: false
-        }));
-      } else {
-        setState(prev => ({ ...prev, isLoading: false }));
+      setIsLoading(true);
+      const nutrients = await getNutrients(food.food_name);
+      if (nutrients) {
+        setSelectedFood(nutrients);
       }
     } catch (error) {
-      console.error('Error in food selection:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      console.error('Error fetching nutrients:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch food information. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleRecipeSelect = async (recipe: any) => {
+  const handleLogFood = async (logData: Omit<FoodLog, 'id' | 'userId' | 'loggedAt'>) => {
+    if (!user || !selectedFood) return;
+    
     try {
-      setState(prev => ({ ...prev, isLoading: true }));
+      const logId = await logFoodEntry(
+        user.id,
+        selectedFood,
+        logData.mealType,
+        logData.portionSize / selectedFood.serving_qty
+      );
       
-      const recipeDetails = await fetchRecipeDetails(recipe);
-      if (recipeDetails) {
-        setState(prev => ({ 
-          ...prev, 
-          selectedRecipe: recipeDetails,
-          selectedFood: null,
-          isLoading: false
-        }));
+      if (logId) {
+        toast({
+          title: 'Food Logged',
+          description: `${logData.foodName} added to your diary.`,
+        });
       } else {
-        setState(prev => ({ ...prev, isLoading: false }));
+        toast({
+          title: 'Error',
+          description: 'Failed to log food. Please try again.',
+          variant: 'destructive',
+        });
       }
+      
+      setSelectedFood(null);
     } catch (error) {
-      console.error('Error in recipe selection:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
-    }
-  };
-
-  const handleLogFood = async (logData: any) => {
-    if (!user || !state.selectedFood) return;
-    
-    const result = await logFood(
-      user.id,
-      state.selectedFood,
-      logData.mealType as MealType,
-      logData.portionSize
-    );
-    
-    if (result) {
-      setState(prev => ({ ...prev, selectedFood: null }));
-    }
-  };
-
-  const handleLogRecipe = async () => {
-    if (!user || !state.selectedRecipe) return;
-    
-    const result = await logRecipe(user.id, state.selectedRecipe);
-    
-    if (result) {
-      setState(prev => ({ ...prev, selectedRecipe: null }));
+      console.error('Error logging food:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to log food. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -93,59 +74,34 @@ const Search = () => {
     <Layout>
       <div className="mb-4">
         <h1 className="text-2xl font-bold">Search & Log</h1>
-        <p className="text-sm text-muted-foreground">Find foods, recipes and log them in seconds</p>
+        <p className="text-sm text-muted-foreground">Find and log your food in seconds</p>
       </div>
 
-      <div className="mb-6">
-        <FoodSearchBar onSelect={handleFoodSelect} />
-      </div>
+      <FoodSearchBar onSelect={handleFoodSelect} />
 
-      <Tabs
-        value={state.activeTab}
-        onValueChange={(value) => setState(prev => ({ 
-          ...prev, 
-          activeTab: value as 'foods' | 'recipes' 
-        }))}
-        className="w-full mb-6"
-      >
-        <TabsList className="grid grid-cols-2">
-          <TabsTrigger value="foods">Foods</TabsTrigger>
-          <TabsTrigger value="recipes">Recipes</TabsTrigger>
-        </TabsList>
-        <TabsContent value="foods" className="mt-2">
-          {/* Food search results will be shown in FoodSearchBar component */}
-        </TabsContent>
-        <TabsContent value="recipes" className="mt-2">
-          {/* Recipe search will be implemented later */}
-        </TabsContent>
-      </Tabs>
-
-      {state.isLoading && (
+      {isLoading && (
         <Card className="mt-6">
           <CardContent className="p-4 text-center">
-            <div className="animate-pulse">Loading...</div>
+            <div className="animate-pulse">Loading food information...</div>
           </CardContent>
         </Card>
       )}
 
-      {state.selectedFood && (
-        <SelectedFoodCard 
-          food={state.selectedFood}
-          onSubmit={handleLogFood}
-          onCancel={() => setState(prev => ({ ...prev, selectedFood: null }))}
-        />
+      {selectedFood && (
+        <div className="mt-6">
+          <FoodLogForm 
+            food={selectedFood} 
+            onSubmit={handleLogFood}
+            onCancel={() => setSelectedFood(null)}
+          />
+        </div>
       )}
 
-      {state.selectedRecipe && (
-        <SelectedRecipeCard 
-          recipe={state.selectedRecipe}
-          onLogRecipe={handleLogRecipe}
-          onCancel={() => setState(prev => ({ ...prev, selectedRecipe: null }))}
-        />
-      )}
-
-      {!state.selectedFood && !state.selectedRecipe && !state.isLoading && (
-        <EmptySearchState />
+      {!selectedFood && !isLoading && (
+        <div className="mt-12 text-center text-muted-foreground">
+          <p>Search for a food to log it to your diary</p>
+          <p className="text-sm mt-2">Examples: apple, chicken breast, latte</p>
+        </div>
       )}
     </Layout>
   );

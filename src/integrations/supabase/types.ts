@@ -13,13 +13,12 @@ export type Database = {
         Row: {
           calories: number
           carbs: number
-          created_at: string | null
           fat: number
           fiber: number | null
           food_id: string | null
           food_name: string
           id: string
-          logged_at: string | null
+          logged_at: string
           meal_type: string
           portion_size: number
           portion_unit: string
@@ -29,13 +28,12 @@ export type Database = {
         Insert: {
           calories: number
           carbs: number
-          created_at?: string | null
           fat: number
           fiber?: number | null
           food_id?: string | null
           food_name: string
           id?: string
-          logged_at?: string | null
+          logged_at?: string
           meal_type: string
           portion_size: number
           portion_unit: string
@@ -45,13 +43,12 @@ export type Database = {
         Update: {
           calories?: number
           carbs?: number
-          created_at?: string | null
           fat?: number
           fiber?: number | null
           food_id?: string | null
           food_name?: string
           id?: string
-          logged_at?: string | null
+          logged_at?: string
           meal_type?: string
           portion_size?: number
           portion_unit?: string
@@ -68,30 +65,62 @@ export type Database = {
           },
         ]
       }
+      user_favorites: {
+        Row: {
+          created_at: string
+          food_id: string
+          food_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          food_id: string
+          food_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          food_id?: string
+          food_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_quick_adds: {
         Row: {
           calories: number
-          created_at: string | null
+          created_at: string
           display_order: number
-          food_id: string | null
+          food_id: string
           food_name: string
           id: string
           user_id: string
         }
         Insert: {
           calories: number
-          created_at?: string | null
+          created_at?: string
           display_order: number
-          food_id?: string | null
+          food_id: string
           food_name: string
           id?: string
           user_id: string
         }
         Update: {
           calories?: number
-          created_at?: string | null
+          created_at?: string
           display_order?: number
-          food_id?: string | null
+          food_id?: string
           food_name?: string
           id?: string
           user_id?: string
@@ -108,33 +137,27 @@ export type Database = {
       }
       users: {
         Row: {
-          created_at: string | null
-          daily_data: Json | null
-          daily_goal: number | null
+          created_at: string
+          daily_goal: Json | null
           email: string
           height: number | null
           id: string
-          updated_at: string | null
           weight: number | null
         }
         Insert: {
-          created_at?: string | null
-          daily_data?: Json | null
-          daily_goal?: number | null
+          created_at?: string
+          daily_goal?: Json | null
           email: string
           height?: number | null
           id: string
-          updated_at?: string | null
           weight?: number | null
         }
         Update: {
-          created_at?: string | null
-          daily_data?: Json | null
-          daily_goal?: number | null
+          created_at?: string
+          daily_goal?: Json | null
           email?: string
           height?: number | null
           id?: string
-          updated_at?: string | null
           weight?: number | null
         }
         Relationships: []
@@ -144,44 +167,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_favorite_foods: {
-        Args: { user_id_param: string; limit_param: number }
-        Returns: {
-          calories: number
-          carbs: number
-          created_at: string | null
-          fat: number
-          fiber: number | null
-          food_id: string | null
-          food_name: string
-          id: string
-          logged_at: string | null
-          meal_type: string
-          portion_size: number
-          portion_unit: string
-          protein: number
-          user_id: string
-        }[]
-      }
-      get_nutrition_summary: {
-        Args: {
-          user_id_param: string
-          period_param: string
-          start_date_param: string
-          end_date_param: string
-        }
-        Returns: {
-          date: string
-          calories: number
-          protein: number
-          carbs: number
-          fat: number
-          fiber: number
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
-      meal_type: "breakfast" | "lunch" | "dinner" | "snack"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -296,8 +285,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      meal_type: ["breakfast", "lunch", "dinner", "snack"],
-    },
+    Enums: {},
   },
 } as const

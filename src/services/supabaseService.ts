@@ -1,5 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { FoodLog, MealType, WaterIntake, FatSecretFood } from "@/types";
+import { FoodLog, MealType } from "@/types";
+import { FoodItem } from "@/services/nutritionixAPI";
 
 // User quick adds
 export interface QuickAddItem {
@@ -89,56 +91,33 @@ export const deleteQuickAddItem = async (id: string): Promise<boolean> => {
 // Log food to the food_logs table
 export const logFoodEntry = async (
   userId: string,
-  food: FatSecretFood | any,
+  food: FoodItem,
   mealType: MealType,
   portionSize: number
 ): Promise<string | null> => {
   try {
-    // Handle FatSecret API format or our internal format
-    let calories, protein, carbs, fat, fiber, servingQty, servingUnit;
-    
-    if (food.servings && food.servings.serving) {
-      // FatSecret format
-      const serving = Array.isArray(food.servings.serving) 
-        ? food.servings.serving[0] 
-        : food.servings.serving;
-      
-      calories = serving.calories * portionSize;
-      protein = serving.protein * portionSize;
-      carbs = serving.carbohydrate * portionSize;
-      fat = serving.fat * portionSize;
-      fiber = serving.fiber ? serving.fiber * portionSize : null;
-      servingQty = serving.number_of_units || 1;
-      servingUnit = serving.measurement_description || 'serving';
-    } else {
-      // Original Nutritionix format
-      calories = Math.round(food.nf_calories * portionSize * 10) / 10;
-      protein = Math.round(food.nf_protein * portionSize * 10) / 10;
-      carbs = Math.round(food.nf_total_carbohydrate * portionSize * 10) / 10;
-      fat = Math.round(food.nf_total_fat * portionSize * 10) / 10;
-      fiber = food.nf_dietary_fiber 
-        ? Math.round(food.nf_dietary_fiber * portionSize * 10) / 10 
-        : null;
-      servingQty = food.serving_qty * portionSize;
-      servingUnit = food.serving_unit;
-    }
-
-    const foodName = food.food_name || food.food_name;
-    const foodId = food.food_id || food.nix_item_id || null;
+    // Calculate adjusted nutrient values based on portion size
+    const calories = Math.round(food.nf_calories * portionSize * 10) / 10;
+    const protein = Math.round(food.nf_protein * portionSize * 10) / 10;
+    const carbs = Math.round(food.nf_total_carbohydrate * portionSize * 10) / 10;
+    const fat = Math.round(food.nf_total_fat * portionSize * 10) / 10;
+    const fiber = food.nf_dietary_fiber 
+      ? Math.round(food.nf_dietary_fiber * portionSize * 10) / 10 
+      : null;
 
     const { data, error } = await supabase
       .from('food_logs')
       .insert({
         user_id: userId,
-        food_name: foodName,
-        food_id: foodId,
+        food_name: food.food_name,
+        food_id: food.nix_item_id || null,
         calories,
         protein,
         carbs,
         fat,
         fiber,
-        portion_size: servingQty,
-        portion_unit: servingUnit,
+        portion_size: food.serving_qty * portionSize,
+        portion_unit: food.serving_unit,
         meal_type: mealType,
       })
       .select();
@@ -297,7 +276,7 @@ export const fetchFavoriteFoods = async (userId: string, limit: number = 6): Pro
       return [];
     }
     
-    return fallbackData.map((log: any) => ({
+    return fallbackData.map(log => ({
       id: log.id,
       userId: log.user_id,
       foodName: log.food_name,
@@ -417,8 +396,7 @@ export const fetchUserProfile = async (userId: string) => {
       email: data.email,
       height: data.height,
       weight: data.weight,
-      dailyGoal: data.daily_goal,
-      dailyData: data.daily_data
+      dailyGoal: data.daily_goal
     };
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -446,40 +424,49 @@ export const updateUserProfile = async (userId: string, profile: any) => {
   }
 };
 
-// Track water intake - using RLS and direct JSON structure without a separate table
+// Track water intake
 export const updateWaterIntake = async (userId: string, glasses: number): Promise<boolean> => {
   try {
     const date = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
     
-    // Update the user profile with water intake data
-    const { data: userData, error: fetchError } = await supabase
-      .from('users')
+    // First check if an entry for today exists
+    const { data, error: fetchError } = await supabase
+      .from('water_intake')
       .select('*')
-      .eq('id', userId)
-      .single();
+      .eq('user_id', userId)
+      .eq('date', date)
+      .maybeSingle();
     
     if (fetchError) {
-      console.error('Error fetching user data for water tracking:', fetchError);
+      console.error('Error fetching water intake:', fetchError);
       return false;
     }
     
-    // Create or update the water_intake object in the user profile
-    const updatedDailyData = userData.daily_data || {};
-    updatedDailyData[date] = {
-      ...(updatedDailyData[date] || {}),
-      water_glasses: glasses
-    };
-    
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ 
-        daily_data: updatedDailyData 
-      })
-      .eq('id', userId);
-    
-    if (updateError) {
-      console.error('Error updating water intake:', updateError);
-      return false;
+    if (data) {
+      // Update existing entry
+      const { error } = await supabase
+        .from('water_intake')
+        .update({ glasses })
+        .eq('id', data.id);
+      
+      if (error) {
+        console.error('Error updating water intake:', error);
+        return false;
+      }
+    } else {
+      // Create new entry
+      const { error } = await supabase
+        .from('water_intake')
+        .insert({
+          user_id: userId,
+          date,
+          glasses
+        });
+      
+      if (error) {
+        console.error('Error inserting water intake:', error);
+        return false;
+      }
     }
     
     return true;
@@ -495,21 +482,18 @@ export const getTodayWaterIntake = async (userId: string): Promise<number> => {
     const date = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
     
     const { data, error } = await supabase
-      .from('users')
-      .select('daily_data')
-      .eq('id', userId)
-      .single();
+      .from('water_intake')
+      .select('glasses')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .maybeSingle();
     
     if (error) {
       console.error('Error fetching water intake:', error);
       return 0;
     }
     
-    // Get the water glasses from the daily_data object
-    const dailyData = data?.daily_data || {};
-    const todayData = dailyData[date] || {};
-    
-    return todayData.water_glasses || 0;
+    return data?.glasses || 0;
   } catch (error) {
     console.error('Error fetching water intake:', error);
     return 0;

@@ -5,8 +5,7 @@ import {
   Home,
   Search,
   BarChart, 
-  User,
-  Camera
+  User
 } from 'lucide-react';
 
 const Navigation = () => {
@@ -22,11 +21,6 @@ const Navigation = () => {
       icon: Search,
       label: 'Search',
       path: '/search',
-    },
-    {
-      icon: Camera,
-      label: 'Photo',
-      path: '/food-image',
     },
     {
       icon: BarChart,
