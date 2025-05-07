@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { getFoodDetails, getRecipeDetails } from '@/services/fatSecretAPI';
@@ -133,7 +135,7 @@ const Search = () => {
             }
           }
         },
-        'dinner' as MealType, // Using 'dinner' as a valid MealType
+        'dinner' as MealType,
         1 // Default to 1 serving
       );
       
@@ -185,85 +187,10 @@ const Search = () => {
           <TabsTrigger value="recipes">Recipes</TabsTrigger>
         </TabsList>
         <TabsContent value="foods" className="mt-2">
-          {state.showResults && state.query.length >= 2 && (
-            <Card className="mb-6">
-              <CardContent className="p-0">
-                {state.isLoading ? (
-                  <div className="p-4 text-center">
-                    <p className="animate-pulse">Searching for foods...</p>
-                  </div>
-                ) : state.foodResults.length > 0 ? (
-                  <ul className="divide-y">
-                    {state.foodResults.map((food, index) => (
-                      <li
-                        key={`food-${index}`}
-                        className="p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
-                        onClick={() => handleFoodSelect(food)}
-                      >
-                        <div>
-                          <p className="font-medium">{food.food_name}</p>
-                          {food.brand_name && (
-                            <p className="text-xs text-muted-foreground">{food.brand_name}</p>
-                          )}
-                        </div>
-                        <Button size="sm" variant="outline">Select</Button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="p-4 text-center">
-                    <p>No foods found. Try another search term.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {/* Food search results will be shown in FoodSearchBar component */}
         </TabsContent>
         <TabsContent value="recipes" className="mt-2">
-          {state.showResults && state.query.length >= 2 && (
-            <Card className="mb-6">
-              <CardContent className="p-0">
-                {state.isLoading ? (
-                  <div className="p-4 text-center">
-                    <p className="animate-pulse">Searching for recipes...</p>
-                  </div>
-                ) : state.recipeResults.length > 0 ? (
-                  <ul className="divide-y">
-                    {state.recipeResults.map((recipe, index) => (
-                      <li
-                        key={`recipe-${index}`}
-                        className="p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
-                        onClick={() => handleRecipeSelect(recipe)}
-                      >
-                        <div className="flex items-center">
-                          {recipe.recipe_image && (
-                            <img 
-                              src={recipe.recipe_image} 
-                              alt={recipe.recipe_name}
-                              className="w-12 h-12 rounded object-cover mr-3" 
-                            />
-                          )}
-                          <div>
-                            <p className="font-medium">{recipe.recipe_name}</p>
-                            {recipe.recipe_description && (
-                              <p className="text-xs text-muted-foreground line-clamp-1">
-                                {recipe.recipe_description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <Button size="sm" variant="outline">View</Button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="p-4 text-center">
-                    <p>No recipes found. Try another search term.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {/* Recipe search will be implemented later */}
         </TabsContent>
       </Tabs>
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { searchFoods, autocompleteFoods } from '@/services/fatSecretAPI';
+import { searchFoods } from '@/services/fatSecretAPI';
 import { FatSecretFood } from '@/types';
 import { useToast } from "@/components/ui/use-toast";
 
@@ -14,11 +14,8 @@ interface FoodSearchBarProps {
 const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FatSecretFood[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [autocompleteLoading, setAutocompleteLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -29,34 +26,9 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
     }
   }, []);
 
-  // Fetch autocomplete suggestions when user types
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (query.length < 2) {
-        setSuggestions([]);
-        return;
-      }
-
-      try {
-        setAutocompleteLoading(true);
-        const results = await autocompleteFoods(query);
-        setSuggestions(results);
-        setShowSuggestions(results.length > 0);
-      } catch (error) {
-        console.error('Error fetching suggestions:', error);
-        setSuggestions([]);
-      } finally {
-        setAutocompleteLoading(false);
-      }
-    };
-
-    const debounce = setTimeout(fetchSuggestions, 300);
-    return () => clearTimeout(debounce);
-  }, [query]);
-
   // Helper function to get default serving
   const getServingInfo = (food: FatSecretFood) => {
-    // For v3 API responses
+    // For v2 API responses
     if (food.servings && food.servings.serving) {
       const serving = Array.isArray(food.servings.serving) 
         ? food.servings.serving.find(s => s.is_default === 1) || food.servings.serving[0] 
@@ -67,36 +39,10 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
     return null;
   };
 
-  const handleSuggestionClick = async (suggestion: string) => {
-    console.log(`Suggestion clicked: ${suggestion}`);
-    setQuery(suggestion);
-    setShowSuggestions(false);
-    
-    // Immediately search for this suggestion
-    setLoading(true);
-    try {
-      const searchResults = await searchFoods(suggestion);
-      console.log(`Search results for suggestion "${suggestion}":`, searchResults);
-      setResults(searchResults);
-      setShowResults(true);
-    } catch (error) {
-      console.error('Error fetching search results:', error);
-      toast({
-        title: "Search Error",
-        description: "Failed to fetch food results. Please try again.",
-        variant: "destructive"
-      });
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSearch = async () => {
     console.log(`Searching for: ${query}`);
     if (query.length >= 2) {
       setLoading(true);
-      setShowSuggestions(false);
       
       try {
         const searchResults = await searchFoods(query);
@@ -124,6 +70,31 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
     }
   };
 
+  // Parse nutrition info from food description (v1 API format)
+  const parseNutritionInfo = (description: string): { calories?: number, fat?: number, carbs?: number, protein?: number } => {
+    try {
+      const info: { calories?: number, fat?: number, carbs?: number, protein?: number } = {};
+      
+      if (!description) return info;
+
+      // Example: "Per 1 serving - Calories: 300kcal | Fat: 13.00g | Carbs: 32.00g | Protein: 15.00g"
+      const caloriesMatch = description.match(/Calories:\s*(\d+\.?\d*)kcal/i);
+      const fatMatch = description.match(/Fat:\s*(\d+\.?\d*)g/i);  
+      const carbsMatch = description.match(/Carbs:\s*(\d+\.?\d*)g/i);
+      const proteinMatch = description.match(/Protein:\s*(\d+\.?\d*)g/i);
+      
+      if (caloriesMatch) info.calories = parseFloat(caloriesMatch[1]);
+      if (fatMatch) info.fat = parseFloat(fatMatch[1]);
+      if (carbsMatch) info.carbs = parseFloat(carbsMatch[1]);  
+      if (proteinMatch) info.protein = parseFloat(proteinMatch[1]);
+      
+      return info;
+    } catch (e) {
+      console.error("Error parsing nutrition info", e);
+      return {};
+    }
+  };
+
   return (
     <div className="relative w-full">
       <div className="flex w-full items-center space-x-2">
@@ -137,14 +108,10 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
-              if (e.target.value.length >= 2) {
-                setShowSuggestions(true);
-              } else {
-                setShowSuggestions(false);
+              if (e.target.value.length < 2) {
                 setShowResults(false);
               }
             }}
-            onFocus={() => setShowSuggestions(query.length >= 2)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleSearch();
@@ -152,38 +119,10 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
             }}
           />
           
-          {/* Loading indicator for autocomplete */}
-          {autocompleteLoading && (
+          {/* Loading indicator */}
+          {loading && (
             <div className="absolute right-2 top-2">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-            </div>
-          )}
-          
-          {/* Autocomplete suggestions */}
-          {showSuggestions && (
-            <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg max-h-40 overflow-auto">
-              {autocompleteLoading ? (
-                <div className="p-2 text-center text-sm">
-                  <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-primary rounded-full mx-auto"></div>
-                  <p className="text-xs mt-1">Loading suggestions...</p>
-                </div>
-              ) : suggestions.length > 0 ? (
-                <ul>
-                  {suggestions.map((suggestion, index) => (
-                    <li
-                      key={`suggestion-${index}`}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => handleSuggestionClick(suggestion)}
-                    >
-                      {suggestion}
-                    </li>
-                  ))}
-                </ul>
-              ) : query.length >= 2 ? (
-                <div className="p-2 text-center text-sm">
-                  <p>No suggestions found</p>
-                </div>
-              ) : null}
             </div>
           )}
         </div>
@@ -210,7 +149,7 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
           ) : results.length > 0 ? (
             <ul>
               {results.map((item, index) => {
-                const serving = getServingInfo(item);
+                const nutritionInfo = parseNutritionInfo(item.food_description || '');
                 
                 return (
                   <li
@@ -218,7 +157,21 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
                     onClick={() => {
                       console.log("Selected food:", item);
-                      onSelect(item);
+                      onSelect({
+                        ...item,
+                        // Add servings structure expected by other components
+                        servings: {
+                          serving: {
+                            calories: nutritionInfo.calories || 0,
+                            carbohydrate: nutritionInfo.carbs || 0,
+                            protein: nutritionInfo.protein || 0,
+                            fat: nutritionInfo.fat || 0,
+                            fiber: 0, // Not available in v1 API
+                            number_of_units: 1,
+                            measurement_description: "serving"
+                          }
+                        }
+                      });
                       setShowResults(false);
                       setQuery('');
                       toast({
@@ -232,10 +185,11 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
                       {item.brand_name && (
                         <div className="text-xs text-gray-500">{item.brand_name}</div>
                       )}
+                      <div className="text-xs text-gray-500">{item.food_description}</div>
                     </div>
-                    {serving && (
+                    {nutritionInfo.calories && (
                       <div className="text-sm text-gray-600">
-                        {serving.calories} cal
+                        {nutritionInfo.calories} cal
                       </div>
                     )}
                   </li>
