@@ -1,54 +1,14 @@
+
+// Define all the basic types needed for the app
+
+// User type for the auth context
 export interface User {
   id: string;
   email: string;
-  height?: number;
-  weight?: number;
-  dailyGoal?: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  dailyData?: {
-    [date: string]: {
-      water_glasses?: number;
-      // Other daily tracking data can be added here in the future
-    };
-  };
-}
-
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'meal';
-
-export interface FoodLog {
-  id?: string;
-  userId: string;
-  foodName: string;
-  foodId?: string | null;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber?: number;
-  portionSize: number;
-  portionUnit: string;
-  mealType: MealType;
-  loggedAt: Date;
-}
-
-export interface DailyNutrition {
-  date: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-}
-
-export interface WaterIntake {
-  id?: string;
-  userId: string;
-  date: string;
-  glasses: number;
+  firstName?: string;
+  lastName?: string;
+  createdAt?: string;
+  profileImage?: string;
 }
 
 // FatSecret API types
@@ -64,67 +24,52 @@ export interface FatSecretFood {
 }
 
 export interface FatSecretServing {
-  serving_id: string;
-  serving_description: string;
+  serving_id?: string;
+  serving_description?: string;
   serving_url?: string;
   metric_serving_amount?: number;
   metric_serving_unit?: string;
   number_of_units?: number;
   measurement_description?: string;
+  is_default?: number;
+  
+  // Nutrition values
+  calories: number | string;
+  carbohydrate: number | string;
+  protein: number | string;
+  fat: number | string;
+  saturated_fat?: number | string;
+  polyunsaturated_fat?: number | string;
+  monounsaturated_fat?: number | string;
+  trans_fat?: number | string;
+  cholesterol?: number | string;
+  sodium?: number | string;
+  potassium?: number | string;
+  fiber?: number | string;
+  sugar?: number | string;
+  added_sugars?: number | string;
+  vitamin_d?: number | string;
+  vitamin_a?: number | string;
+  vitamin_c?: number | string;
+  calcium?: number | string;
+  iron?: number | string;
+}
+
+// Meal types
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+// Nutrient summary for cards
+export interface NutrientSummary {
   calories: number;
-  carbohydrate: number;
   protein: number;
+  carbs: number;
   fat: number;
-  saturated_fat?: number;
-  polyunsaturated_fat?: number;
-  monounsaturated_fat?: number;
-  trans_fat?: number;
-  cholesterol?: number;
-  sodium?: number;
-  potassium?: number;
   fiber?: number;
   sugar?: number;
-  vitamin_a?: number;
-  vitamin_c?: number;
-  calcium?: number;
-  iron?: number;
-}
-
-export interface FatSecretRecipe {
-  recipe_id: string;
-  recipe_name: string;
-  recipe_description?: string;
-  recipe_url?: string;
-  recipe_image?: string;
-  preparation_time_min?: number;
-  cooking_time_min?: number;
-  serving_sizes?: {
-    serving: {
-      serving_description: string;
-      number_of_units?: number;
-    }
-  };
-  number_of_servings?: number;
-  rating?: number;
-  recipe_categories?: {
-    recipe_category: string[];
-  };
-  recipe_types?: {
-    recipe_type: string[];
-  };
-  nutrition_facts?: {
+  remaining?: {
     calories: number;
-    carbohydrate: number;
     protein: number;
+    carbs: number;
     fat: number;
-    fiber?: number;
-    sugar?: number;
-    sodium?: number;
-  };
-}
-
-export interface FatSecretImageRecognition {
-  results: {
-    food: FatSecretFood[];
   };
 }

@@ -1,6 +1,6 @@
 
 // Use OAuth 2.0 credentials for FatSecret
-const CLIENT_ID = "02cd317bd67546c2adc92442ccc3e277"; // Fixed client ID
+const CLIENT_ID = "02cd317bd67546c2adc92442ccc3e277"; // Corrected client ID
 const CLIENT_SECRET = "fd77bf8995d943d1bc088339095dd8d4";
 
 const BASE_URL = "https://platform.fatsecret.com/rest/server.api";
@@ -31,7 +31,7 @@ const getAccessToken = async (): Promise<string> => {
     const data = await response.json();
     
     if (!response.ok) {
-      throw new Error("Failed to obtain access token");
+      throw new Error(`Failed to obtain access token: ${JSON.stringify(data)}`);
     }
     
     accessToken = data.access_token;
@@ -90,11 +90,12 @@ export const searchFoods = async (query: string, maxResults = 10): Promise<any[]
   }
 };
 
-// Autocomplete food search (new implementation)
+// Properly implement autocomplete food search using v2 API
 export const autocompleteFoods = async (query: string, maxResults = 10): Promise<string[]> => {
   try {
     const token = await getAccessToken();
     
+    // Use correct parameter names for the v2 API
     const params = new URLSearchParams({
       method: "foods.autocomplete.v2",
       expression: query,

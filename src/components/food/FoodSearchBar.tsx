@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { searchFoods, autocompleteFoods } from '@/services/fatSecretAPI';
 import { FatSecretFood } from '@/types';
+import { useToast } from "@/components/ui/use-toast";
 
 interface FoodSearchBarProps {
   onSelect: (food: FatSecretFood) => void;
@@ -17,8 +18,9 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const { toast } = useToast();
 
-  // Fetch autocomplete suggestions
+  // Fetch autocomplete suggestions when user types
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (query.length < 2) {
@@ -40,32 +42,7 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
     return () => clearTimeout(debounce);
   }, [query]);
 
-  // Fetch search results
-  useEffect(() => {
-    const fetchResults = async () => {
-      if (query.length < 2) {
-        setResults([]);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const searchResults = await searchFoods(query);
-        console.log("Search results received:", searchResults);
-        setResults(searchResults);
-      } catch (error) {
-        console.error('Error fetching search results:', error);
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const debounce = setTimeout(fetchResults, 500);
-    return () => clearTimeout(debounce);
-  }, [query]);
-
-  // Helper function to get nutritional info for display
+  // Helper function to get default serving
   const getServingInfo = (food: FatSecretFood) => {
     // For v3 API responses
     if (food.servings && food.servings.serving) {
@@ -90,6 +67,11 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
       setShowResults(true);
     } catch (error) {
       console.error('Error fetching search results:', error);
+      toast({
+        title: "Search Error",
+        description: "Failed to fetch food results. Please try again.",
+        variant: "destructive"
+      });
       setResults([]);
     } finally {
       setLoading(false);
@@ -135,8 +117,30 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
           type="button" 
           onClick={() => {
             if (query.length >= 2) {
-              setShowResults(true);
-              setShowSuggestions(false);
+              setLoading(true);
+              searchFoods(query)
+                .then(results => {
+                  setResults(results);
+                  setShowResults(true);
+                  if (results.length === 0) {
+                    toast({
+                      title: "No results found",
+                      description: "Try a different search term"
+                    });
+                  }
+                })
+                .catch(err => {
+                  console.error("Search error:", err);
+                  toast({
+                    title: "Search Error",
+                    description: "Failed to fetch food results",
+                    variant: "destructive"
+                  });
+                })
+                .finally(() => {
+                  setLoading(false);
+                  setShowSuggestions(false);
+                });
             }
           }}
         >
@@ -144,10 +148,14 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
         </Button>
       </div>
 
+      {/* Search results */}
       {showResults && query.length >= 2 && (
         <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto">
           {loading ? (
-            <div className="p-4 text-center text-sm">Loading...</div>
+            <div className="p-4 text-center text-sm">
+              <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-primary rounded-full mx-auto mb-2"></div>
+              <p>Searching...</p>
+            </div>
           ) : results.length > 0 ? (
             <ul>
               {results.map((item, index) => {
@@ -162,6 +170,10 @@ const FoodSearchBar = ({ onSelect }: FoodSearchBarProps) => {
                       onSelect(item);
                       setShowResults(false);
                       setQuery('');
+                      toast({
+                        title: "Food selected",
+                        description: `${item.food_name} has been selected`
+                      });
                     }}
                   >
                     <div>
