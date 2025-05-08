@@ -4,38 +4,47 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { FoodLog, MealType } from '@/types';
+import { FoodItem } from '@/services/fatSecretAPI';
 
-interface FoodItem {
-  food_name: string;
-  nix_item_id?: string | null;
-  nf_calories: number;
-  nf_protein?: number;
-  nf_total_carbohydrate?: number;
-  nf_total_fat?: number;
-  nf_dietary_fiber?: number;
-  serving_qty: number;
-  serving_unit: string;
-  photo?: {
-    thumb?: string;
-  };
-}
-
-interface FoodLogFormProps {
+interface SelectedFoodCardProps {
   food: FoodItem;
   onSubmit: (log: Omit<FoodLog, 'id' | 'userId' | 'loggedAt'>) => void;
   onCancel: () => void;
 }
 
-const FoodLogForm = ({ food, onSubmit, onCancel }: FoodLogFormProps) => {
+const SelectedFoodCard = ({ food, onSubmit, onCancel }: SelectedFoodCardProps) => {
   const [portionSize, setPortionSize] = useState(1);
   const [mealType, setMealType] = useState<MealType>('snack');
 
-  // Use reasonable defaults if nutrition data is missing
-  const calories = food.nf_calories || 0;
-  const protein = food.nf_protein || 0;
-  const carbs = food.nf_total_carbohydrate || 0;
-  const fat = food.nf_total_fat || 0;
-  const fiber = food.nf_dietary_fiber || 0;
+  // Parse nutrition values from food_description or use defaults
+  const parseNutritionValue = (text: string, nutrient: string): number => {
+    try {
+      const regex = new RegExp(`${nutrient}:\\s*(\\d+(\\.\\d+)?)g`, 'i');
+      const match = text.match(regex);
+      return match ? parseFloat(match[1]) : 0;
+    } catch (e) {
+      console.error(`Error parsing ${nutrient}:`, e);
+      return 0;
+    }
+  };
+
+  const parseCalories = (text: string): number => {
+    try {
+      const regex = /Calories:\s*(\d+(\.\d+)?)kcal/i;
+      const match = text.match(regex);
+      return match ? parseFloat(match[1]) : 0;
+    } catch (e) {
+      console.error('Error parsing calories:', e);
+      return 0;
+    }
+  };
+
+  // Extract nutrition information from food_description
+  const calories = parseCalories(food.food_description);
+  const protein = parseNutritionValue(food.food_description, 'Protein');
+  const carbs = parseNutritionValue(food.food_description, 'Carbs');
+  const fat = parseNutritionValue(food.food_description, 'Fat');
+  const fiber = 0; // Not typically included in the basic description
 
   const calculateNutrients = (nutrient: number) => {
     return Math.round(nutrient * portionSize * 10) / 10;
@@ -44,14 +53,14 @@ const FoodLogForm = ({ food, onSubmit, onCancel }: FoodLogFormProps) => {
   const handleSubmit = () => {
     onSubmit({
       foodName: food.food_name,
-      foodId: food.nix_item_id || null,
+      foodId: food.food_id.toString(),
       calories: calculateNutrients(calories),
       protein: calculateNutrients(protein),
       carbs: calculateNutrients(carbs),
       fat: calculateNutrients(fat),
       fiber: calculateNutrients(fiber),
-      portionSize: food.serving_qty * portionSize,
-      portionUnit: food.serving_unit,
+      portionSize: portionSize,
+      portionUnit: 'serving',
       mealType,
     });
   };
@@ -65,20 +74,12 @@ const FoodLogForm = ({ food, onSubmit, onCancel }: FoodLogFormProps) => {
 
   return (
     <Card className="p-4 animate-fade-in rounded-lg border-2 border-primary/20 shadow-lg">
-      <div className="mb-4 flex items-center">
-        {food.photo?.thumb && (
-          <img 
-            src={food.photo.thumb} 
-            alt={food.food_name} 
-            className="w-16 h-16 rounded-md mr-4 object-cover shadow-md"
-          />
+      <div className="mb-4">
+        <h3 className="font-medium text-lg">{food.food_name}</h3>
+        {food.brand_name && (
+          <p className="text-sm text-muted-foreground">{food.brand_name}</p>
         )}
-        <div>
-          <h3 className="font-medium text-lg">{food.food_name}</h3>
-          <p className="text-sm text-muted-foreground">
-            {food.serving_qty * portionSize} {food.serving_unit}
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground mt-1">{food.food_description}</p>
       </div>
 
       <div className="mb-6">
@@ -166,4 +167,4 @@ const FoodLogForm = ({ food, onSubmit, onCancel }: FoodLogFormProps) => {
   );
 };
 
-export default FoodLogForm;
+export default SelectedFoodCard;

@@ -91,33 +91,67 @@ export const deleteQuickAddItem = async (id: string): Promise<boolean> => {
 // Log food to the food_logs table
 export const logFoodEntry = async (
   userId: string,
-  food: FoodItem,
+  food: any, // Using any type to accommodate both Nutritionix and FatSecret API responses
   mealType: MealType,
   portionSize: number
 ): Promise<string | null> => {
   try {
+    console.log("logFoodEntry called with:", { userId, food, mealType, portionSize });
+    
     // Calculate adjusted nutrient values based on portion size
-    const calories = Math.round(food.nf_calories * portionSize * 10) / 10;
-    const protein = Math.round(food.nf_protein * portionSize * 10) / 10;
-    const carbs = Math.round(food.nf_total_carbohydrate * portionSize * 10) / 10;
-    const fat = Math.round(food.nf_total_fat * portionSize * 10) / 10;
-    const fiber = food.nf_dietary_fiber 
-      ? Math.round(food.nf_dietary_fiber * portionSize * 10) / 10 
-      : null;
-
+    const calories = Math.round((food.nf_calories || food.calories) * portionSize * 10) / 10;
+    const protein = Math.round((food.nf_protein || food.protein || 0) * portionSize * 10) / 10;
+    const carbs = Math.round((food.nf_total_carbohydrate || food.carbs || 0) * portionSize * 10) / 10;
+    const fat = Math.round((food.nf_total_fat || food.fat || 0) * portionSize * 10) / 10;
+    const fiber = food.nf_dietary_fiber || food.fiber 
+      ? Math.round((food.nf_dietary_fiber || food.fiber) * portionSize * 10) / 10 
+      : 0;
+    
+    console.log("Calculated nutrition:", { calories, protein, carbs, fat, fiber });
+    console.log("Inserting into food_logs...");
+    
+    // First, check if the user exists in the users table
+    const { data: userExists, error: userCheckError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (userCheckError) {
+      console.error('Error checking if user exists:', userCheckError);
+      return null;
+    }
+    
+    // If user doesn't exist, create the user record first
+    if (!userExists) {
+      console.log("User does not exist in users table, creating...");
+      const { error: insertUserError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email: 'unknown@example.com', // Placeholder, will be updated on next profile fetch
+          daily_goal: 2000 // Default daily goal
+        });
+      
+      if (insertUserError) {
+        console.error('Error creating user record:', insertUserError);
+        return null;
+      }
+    }
+    
     const { data, error } = await supabase
       .from('food_logs')
       .insert({
         user_id: userId,
         food_name: food.food_name,
-        food_id: food.nix_item_id || null,
+        food_id: (food.nix_item_id || food.food_id || null)?.toString(),
         calories,
         protein,
         carbs,
         fat,
         fiber,
-        portion_size: food.serving_qty * portionSize,
-        portion_unit: food.serving_unit,
+        portion_size: portionSize,
+        portion_unit: food.serving_unit || 'serving',
         meal_type: mealType,
       })
       .select();
