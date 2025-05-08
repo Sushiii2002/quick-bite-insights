@@ -23,7 +23,8 @@ export const fetchUserProfile = async (userId: string) => {
       email: data.email,
       height: data.height,
       weight: data.weight,
-      dailyGoal: data.daily_goal
+      dailyGoal: data.daily_goal,
+      onboardingCompleted: data.onboarding_completed
     };
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -39,9 +40,27 @@ export const updateUserProfile = async (userId: string, profile: any) => {
     // Ensure user exists before updating
     await createUserIfNotExists(userId);
 
+    // Convert camelCase to snake_case for Supabase
+    const dbProfile: Record<string, any> = {};
+    
+    if ('dailyGoal' in profile) {
+      dbProfile.daily_goal = profile.dailyGoal;
+    }
+    
+    if ('onboardingCompleted' in profile) {
+      dbProfile.onboarding_completed = profile.onboardingCompleted;
+    }
+    
+    // Add any other fields that don't need conversion
+    for (const key in profile) {
+      if (!['dailyGoal', 'onboardingCompleted'].includes(key)) {
+        dbProfile[key] = profile[key];
+      }
+    }
+
     const { error } = await supabase
       .from('users')
-      .update(profile)
+      .update(dbProfile)
       .eq('id', userId);
 
     if (error) {

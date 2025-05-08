@@ -114,6 +114,7 @@ export type Database = {
           email: string
           height: number | null
           id: string
+          onboarding_completed: boolean | null
           updated_at: string | null
           weight: number | null
         }
@@ -124,6 +125,7 @@ export type Database = {
           email: string
           height?: number | null
           id: string
+          onboarding_completed?: boolean | null
           updated_at?: string | null
           weight?: number | null
         }
@@ -134,6 +136,7 @@ export type Database = {
           email?: string
           height?: number | null
           id?: string
+          onboarding_completed?: boolean | null
           updated_at?: string | null
           weight?: number | null
         }

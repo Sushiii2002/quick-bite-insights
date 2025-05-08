@@ -13,13 +13,17 @@ import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import PrivateRoute from "./components/auth/PrivateRoute";
+import Onboarding from "./pages/Onboarding";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => (
   <Routes>
+    <Route path="/" element={<Index />} />
     <Route path="/auth" element={<Auth />} />
-    <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
+    <Route path="/onboarding" element={<PrivateRoute><Onboarding /></PrivateRoute>} />
+    <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
     <Route path="/search" element={<PrivateRoute><Search /></PrivateRoute>} />
     <Route path="/analysis" element={<PrivateRoute><AnalysisReports /></PrivateRoute>} />
     <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
