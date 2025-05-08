@@ -24,8 +24,8 @@ import {
   deleteQuickAddItem,
   logQuickAddItem,
   
-  // Types
-  QuickAddItem
+  // Types - import with type keyword
+  type QuickAddItem
 } from './supabase';
 
 // Re-export everything
@@ -51,8 +51,8 @@ export {
   deleteQuickAddItem,
   logQuickAddItem,
   
-  // Types
-  QuickAddItem
+  // Types - export with type keyword
+  type QuickAddItem
 };
 
 // NOTE: Water intake functionality has been removed as it's not supported in the current database schema
