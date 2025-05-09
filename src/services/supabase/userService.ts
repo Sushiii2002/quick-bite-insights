@@ -18,13 +18,25 @@ export const fetchUserProfile = async (userId: string) => {
       return null;
     }
 
+    // Parse daily_goal based on its type
+    let dailyGoal = data.daily_goal;
+    if (typeof dailyGoal === 'number') {
+      // Handle case where it's stored as a simple number
+      dailyGoal = {
+        calories: dailyGoal,
+        protein: 100,
+        carbs: 200,
+        fat: 65
+      };
+    }
+
     return {
       id: data.id,
       email: data.email,
       height: data.height,
       weight: data.weight,
-      dailyGoal: data.daily_goal,
-      goalType: data.goal_type || 'maintain', // Access existing goal_type column
+      dailyGoal: dailyGoal,
+      goalType: data.goal_type || 'maintain',
       onboardingCompleted: data.onboarding_completed
     };
   } catch (error) {

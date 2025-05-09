@@ -110,7 +110,7 @@ export type Database = {
         Row: {
           created_at: string | null
           daily_data: Json | null
-          daily_goal: number | null
+          daily_goal: Json | null
           email: string
           goal_type: string | null
           height: number | null
@@ -122,7 +122,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           daily_data?: Json | null
-          daily_goal?: number | null
+          daily_goal?: Json | null
           email: string
           goal_type?: string | null
           height?: number | null
@@ -134,7 +134,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           daily_data?: Json | null
-          daily_goal?: number | null
+          daily_goal?: Json | null
           email?: string
           goal_type?: string | null
           height?: number | null
