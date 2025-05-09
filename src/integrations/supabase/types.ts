@@ -112,6 +112,7 @@ export type Database = {
           daily_data: Json | null
           daily_goal: number | null
           email: string
+          goal_type: string | null
           height: number | null
           id: string
           onboarding_completed: boolean | null
@@ -123,6 +124,7 @@ export type Database = {
           daily_data?: Json | null
           daily_goal?: number | null
           email: string
+          goal_type?: string | null
           height?: number | null
           id: string
           onboarding_completed?: boolean | null
@@ -134,6 +136,7 @@ export type Database = {
           daily_data?: Json | null
           daily_goal?: number | null
           email?: string
+          goal_type?: string | null
           height?: number | null
           id?: string
           onboarding_completed?: boolean | null
