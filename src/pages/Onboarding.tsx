@@ -73,8 +73,14 @@ const Onboarding = () => {
         const profile = {
           weight: weightInKg,
           height: heightInCm,
-          daily_goal: dailyCalories,
-          onboarding_completed: true
+          dailyGoal: {
+            calories: dailyCalories,
+            protein: Math.round(weightInKg * 1.6), // 1.6g per kg bodyweight
+            carbs: Math.round((dailyCalories * 0.5) / 4), // 50% of calories from carbs, 4 cal per gram
+            fat: Math.round((dailyCalories * 0.25) / 9), // 25% of calories from fat, 9 cal per gram
+          },
+          goalType: goalType, // Store the user's goal type
+          onboardingCompleted: true
         };
         
         const success = await updateUserProfile(user.id, profile);
@@ -84,7 +90,7 @@ const Onboarding = () => {
             title: "Onboarding Complete",
             description: "Your profile has been set up successfully!",
           });
-          navigate('/');
+          navigate('/home');
         } else {
           throw new Error("Failed to update profile");
         }

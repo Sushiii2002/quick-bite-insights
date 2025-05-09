@@ -58,6 +58,8 @@ export const updateUserProfile = async (userId: string, profile: any) => {
       }
     }
 
+    console.log("Updating profile with data:", dbProfile);
+
     const { error } = await supabase
       .from('users')
       .update(dbProfile)

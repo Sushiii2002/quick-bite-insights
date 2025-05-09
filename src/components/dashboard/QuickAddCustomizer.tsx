@@ -81,17 +81,24 @@ const QuickAddCustomizer = ({ quickItems, onCustomizationComplete }: QuickAddCus
     }
   };
 
-  const handleRemoveItem = async (id?: string) => {
-    if (!id) return;
+  const handleRemoveItem = async (item: QuickAddItem) => {
+    if (!item.id) {
+      toast({
+        title: "Error",
+        description: "Cannot remove item without ID",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       setIsLoading(true);
-      const success = await deleteQuickAddItem(id);
+      const success = await deleteQuickAddItem(item.id);
       
       if (success) {
         toast({
           title: "Item Removed",
-          description: "Quick Add item has been removed"
+          description: `${item.foodName} has been removed from Quick Add`
         });
         onCustomizationComplete();
       } else {
@@ -164,7 +171,7 @@ const QuickAddCustomizer = ({ quickItems, onCustomizationComplete }: QuickAddCus
                   {quickItems
                     .sort((a, b) => a.displayOrder - b.displayOrder)
                     .map((item) => (
-                      <li key={item.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                      <li key={item.id || item.foodId} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
                         <div>
                           <p className="text-sm font-medium">{item.foodName}</p>
                           <p className="text-xs text-muted-foreground">{item.calories} cal</p>
@@ -172,8 +179,9 @@ const QuickAddCustomizer = ({ quickItems, onCustomizationComplete }: QuickAddCus
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="h-8 w-8 p-0 rounded-full"
-                          onClick={() => handleRemoveItem(item.id)}
+                          className="h-8 w-8 p-0 rounded-full text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleRemoveItem(item)}
+                          disabled={isLoading}
                         >
                           <X className="h-4 w-4" />
                         </Button>

@@ -39,6 +39,7 @@ const Profile = () => {
     } as DailyGoals
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [favoriteItems, setFavoriteItems] = useState<{foodName: string, calories: number}[]>([]);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ const Profile = () => {
           }
           
           setProfile({
-            email: userProfile.email,
+            email: userProfile.email || '',
             height: userProfile.height || 175,
             weight: userProfile.weight || 70,
             dailyGoals
@@ -96,11 +97,23 @@ const Profile = () => {
     if (!user) return;
     
     try {
-      const success = await updateUserProfile(user.id, {
+      setIsSaving(true);
+      
+      // Convert goals to proper format for storage
+      const updatedProfile = {
         height: profile.height,
         weight: profile.weight,
-        daily_goal: profile.dailyGoals
-      });
+        dailyGoal: {
+          calories: Number(profile.dailyGoals.calories),
+          protein: Number(profile.dailyGoals.protein),
+          carbs: Number(profile.dailyGoals.carbs),
+          fat: Number(profile.dailyGoals.fat)
+        }
+      };
+      
+      console.log("Saving profile:", updatedProfile);
+      
+      const success = await updateUserProfile(user.id, updatedProfile);
       
       if (success) {
         toast({
@@ -121,6 +134,8 @@ const Profile = () => {
         description: "Failed to update profile",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -179,7 +194,9 @@ const Profile = () => {
                 </div>
               </div>
               
-              <Button onClick={handleSave}>Save Changes</Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
             </CardContent>
           </Card>
 
@@ -282,7 +299,9 @@ const Profile = () => {
                 </div>
               </div>
               
-              <Button onClick={handleSave}>Save Goals</Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving Goals...' : 'Save Goals'}
+              </Button>
             </CardContent>
           </Card>
 

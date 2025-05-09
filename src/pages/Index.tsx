@@ -1,12 +1,14 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { fetchUserProfile } from '@/services/supabaseService';
+import { Loader2 } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     const checkUserAndRedirect = async () => {
@@ -17,6 +19,8 @@ const Index = () => {
         navigate('/auth');
         return;
       }
+
+      setIsRedirecting(true);
 
       try {
         // User is logged in, check if they've completed onboarding
@@ -40,10 +44,13 @@ const Index = () => {
   }, [user, loading, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-primary">BeyondDiet</h1>
-        <p className="mt-2">Loading...</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary/10 to-background">
+      <div className="text-center p-6 rounded-lg">
+        <h1 className="text-3xl font-bold text-primary mb-2">BeyondDiet</h1>
+        <div className="flex items-center justify-center mt-4">
+          <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+          <p className="text-muted-foreground">Loading your nutrition journey...</p>
+        </div>
       </div>
     </div>
   );
