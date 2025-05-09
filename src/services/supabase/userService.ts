@@ -24,7 +24,7 @@ export const fetchUserProfile = async (userId: string) => {
       height: data.height,
       weight: data.weight,
       dailyGoal: data.daily_goal,
-      goalType: data.goal_type,
+      goalType: (data as any).goal_type || 'maintain', // Use type assertion and provide a default
       onboardingCompleted: data.onboarding_completed
     };
   } catch (error) {
