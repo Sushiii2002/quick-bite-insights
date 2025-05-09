@@ -10,6 +10,8 @@ export interface User {
     carbs: number;
     fat: number;
   };
+  goalType?: 'lose' | 'maintain' | 'gain';
+  onboardingCompleted?: boolean;
 }
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';

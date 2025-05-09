@@ -24,6 +24,7 @@ export const fetchUserProfile = async (userId: string) => {
       height: data.height,
       weight: data.weight,
       dailyGoal: data.daily_goal,
+      goalType: data.goal_type,
       onboardingCompleted: data.onboarding_completed
     };
   } catch (error) {
@@ -51,9 +52,13 @@ export const updateUserProfile = async (userId: string, profile: any) => {
       dbProfile.onboarding_completed = profile.onboardingCompleted;
     }
     
+    if ('goalType' in profile) {
+      dbProfile.goal_type = profile.goalType;
+    }
+    
     // Add any other fields that don't need conversion
     for (const key in profile) {
-      if (!['dailyGoal', 'onboardingCompleted'].includes(key)) {
+      if (!['dailyGoal', 'onboardingCompleted', 'goalType'].includes(key)) {
         dbProfile[key] = profile[key];
       }
     }
